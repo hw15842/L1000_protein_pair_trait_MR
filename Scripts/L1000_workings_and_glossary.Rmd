@@ -1,0 +1,68 @@
+---
+title: "L1000_workings_and_glossary"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## L1000 Workings and Glossary
+
+This is a glossary of terms and useful information for working with the L1000 dataset
+
+To run this on BC4 use the following in the command line:
+
+Rscript -e 'library(rmarkdown); rmarkdown::render("L1000_workings_and_glossary.Rmd", "html_document")'
+
+I have extracted the z scores for my protein pairs from the L1000 dataset using the "extracting_protein_pairs_L1000_data.R"
+
+Below I have loaded and summarised some of the data pruduced from that script 
+
+
+```{r cache = TRUE}
+load("/mnt/storage/scratch/hw15842/L1000/Results/prot_pairs_l1000_list_of_dataframes.rdata")
+load("/mnt/storage/scratch/hw15842/L1000/Results/prot_pairs_l1000_results.rdata")
+
+summary(sapply(datalist, nrow))
+
+head(prot_pairs_l1000_results)
+
+```
+
+
+### Z-scores in L1000
+
+** From the L1000 glossary <https://clue.io/connectopedia/glossary> **
+
+- **Differential expression**   The degree to which a gene’s expression is increased or decreased in response to a perturbagen, relative to the absence of perturbagen treatment. In the L1000 pipeline, differential expression is computed using a robust z-score.
+
+- ** Z-score **   For a data point, the number of standard deviations that point is above or below the population mean is called its Z-score. In the L1000 data processing pipeline, we compute a robust z-score for each gene in each sample. The reference population used to compute the median and MAD is the expression of the given gene in every other well on the plate. These z-score values correspond to level 4 data.
+
+The weighted averages of z-score vectors from Level 4 per perturbation are reduced to a single differential expression vector based on Spearman correlation between the replicates (also referred to as MODZ: moderated z-score). There is one differential expression value per each of the 12,328 genes (978 landmark plus 11,350 inferred) in each replicate. Signatures therefore provide a representation of the biological response of the genome to the perturbation. For the L1000 assay, each signature is designated by its sig_id identification tag.
+
+
+* So *... this means that the z score is relative to the absence of a perturbagen and is based on a Spearman correlation of the replicates (normally three replicates)
+
+
+
+
+
+
+
+
+### Perturbagens 
+
+** Genetic and Compound Perturbagen Types **
+* Taken from <https://clue.io/connectopedia/category/Analytical%20Methods> *
+
+> A perturbagen is a (chemical or genetic) reagent used in the laboratory to treat cells and measure the resulting biological response. In the case of CMap, changes in gene expression are measured following treatment with a perturbagen.
+Chemical perturbagens are typically small molecule compounds (e.g.,, drugs, tool compounds etc). Genetic perturbagens include libraries of CRISPR/Cas9 constructs, short hairpin RNAs (shRNAs), and open reading frames (ORFs) used to edit, knockdown, or overexpress genes, respectively.
+We capture the cell's response to perturbagens by measuring the expression changes for ~1000 genes (and inferring ~11k more for a total of ~12k genes). We refer to this vector of gene expression changes as the 'signature' of perturbing a particular gene or treating with a particular compound. We then compare these signatures, which contain many genes, to each other and to external gene sets to look for relationships between perturbagens.
+
+We decided to only use cDNA (up-regulates) and shRNA (down-regulates) to simplify things and as this is what was used in GoDMC analyses as well
+
+- shRNA for loss of function (LoF) of gene	 = trt_sh
+- cDNA for overexpression of wild-type gene	 = trt_oe
+
+
