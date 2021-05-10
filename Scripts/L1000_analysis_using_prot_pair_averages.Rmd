@@ -15,7 +15,7 @@ This is the data created in the L1000_protein_pairs_creating_averages.R script
 
 We have multiplied the shRNA z-scores by -1
 
-The shRNA is a loss of function perturbagen, the cDNA peturbagen over expresses wild type genes, therfore to make them comparable we multiple the shRNA z-scores by -1
+The shRNA is a loss of function perturbagen, the cDNA peturbagen over expresses wild type genes, therefore to make them comparable we multiple the shRNA z-scores by -1
 
 ```{r}
 
@@ -37,23 +37,103 @@ summary(L1000_prot_pair_averages$mean)
 
 We use the pnorm() func to turn the z-scores into p-values
 
-we determine if it is a significant p-value by dividing 0.05 by 401,080 - this is the number of original protein pairs before adding "forward and reverse" prot pairs 
+We need to use the absolute value of the Z-score with lower.tail set to False to be able to accurately compare the p-values. 
+We then also need to multiple the p-value by 2 to get a threshold of 0.05 (rather than 0.25 for a one tailed test)
+
+We determine if it is a significant p-value by dividing 0.05 by 401,080 - this is the number of original protein pairs before adding "forward and reverse" prot pairs 
 
 ```{r}
 
-L1000_prot_pair_averages$pval_mean_z <- pnorm(L1000_prot_pair_averages$mean)
-L1000_prot_pair_averages$sig_zscore <- ifelse(L1000_prot_pair_averages$pval_mean_z < (0.05/401080), "Yes", "No")
+L1000_prot_pair_averages$pval_mean_z <- (pnorm(abs(L1000_prot_pair_averages$mean), lower.tail=F))*2
+L1000_prot_pair_averages$sig_zscore_mean <- ifelse(L1000_prot_pair_averages$pval_mean_z < (0.05/401080), "Yes", "No")
 
-table(L1000_prot_pair_averages$sig_zscore)
+table(L1000_prot_pair_averages$sig_zscore_mean)
 
-# None of the protein pairs have a significant z-score at this threshold
+# Only 1 of the protein pairs have a significant z-score at this threshold
 
 # Just look at 0.05 threshold
 
-L1000_prot_pair_averages$sig_zscore <- ifelse(L1000_prot_pair_averages$pval_mean_z < 0.05, "Yes", "No")
+L1000_prot_pair_averages$sig_zscore_mean <- ifelse(L1000_prot_pair_averages$pval_mean_z < 0.05, "Yes", "No")
 
-table(L1000_prot_pair_averages$sig_zscore)
+table(L1000_prot_pair_averages$sig_zscore_mean)
 
 ```
 
-So there are only 48 protein pairs that are significant at the very high threshold of 0.05.. 
+So there are only 82 protein pairs that are significant at the very high threshold of 0.05
+
+
+## Looking at maximum rather than average
+
+Rather than using the average of the z-scores, we will look at the largest value. The different z-scores come from the different cell lines in which the analysis took place
+
+We need to determine the **absolute** largest Z-score (i.e. the "largest" negative number or largest positive number)
+
+We can also do FDR correction for multiple testing which is slightly less stringent 
+
+
+```{r}
+L1000_prot_pair_averages$sig_zscore_mean <- NULL
+
+L1000_prot_pair_averages$largest <- ifelse(abs(L1000_prot_pair_averages$min) > abs(L1000_prot_pair_averages$max), L1000_prot_pair_averages$min, L1000_prot_pair_averages$max)
+
+L1000_prot_pair_averages$pval_max_z <- (pnorm(abs(L1000_prot_pair_averages$largest), lower.tail=F))*2
+
+L1000_prot_pair_averages$fdr <- p.adjust(L1000_prot_pair_averages$pval_max_z, "fdr")
+
+table(L1000_prot_pair_averages$fdr < 0.05)
+
+```
+
+This now gives us 5108 protein pairs that pass multiple testing threshold. 
+
+
+# Comparing L1000 to protein pair MR 
+
+We are going to look at multiple ways of comparing the L1000 protein pairs to our MR results for the protein pairs 
+
+
+## Get the R^2^ values
+
+We need to get the R^2^ values for the SNP on the exposure and the SNP on the outcome for all the protein pairs 
+
+If the SNP-exposure has the larger R^2^ , it might suggest that the exposure influences the outcome and vice versa. 
+
+We can also use stieger filtering to determine if one R^2^ is significantly loarger than the other.
+
+```{r}
+
+```
+
+## Does the direction of the R^2^ correlate with the direction of the Z-score? 
+
+Does the direction of the R^2^ match the direction as predicted by the L1000 data for the protein pairs 
+
+```{r}
+
+```
+
+## Does the *Beta* correlate with the Z-score 
+
+We have the *beta* values for the MR of the protein pairs
+
+Does the direction of the *beta* correlate with the direction of the Z-score 
+
+```{r}
+
+```
+
+
+
+## How often do we get a significant MR and a significant L1000 protein pair 
+
+How often are we finding the a significant MR is also significant in the L1000 data. 
+
+```{r}
+
+```
+
+
+
+
+
+
