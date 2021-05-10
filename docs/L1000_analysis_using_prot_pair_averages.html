@@ -197,7 +197,7 @@ summary {
 <p>Load in the L1000_prot_pair_averages.rdata file from github</p>
 <p>This is the data created in the L1000_protein_pairs_creating_averages.R script</p>
 <p>We have multiplied the shRNA z-scores by -1</p>
-<p>The shRNA is a loss of function perturbagen, the cDNA peturbagen over expresses wild type genes, therfore to make them comparable we multiple the shRNA z-scores by -1</p>
+<p>The shRNA is a loss of function perturbagen, the cDNA peturbagen over expresses wild type genes, therefore to make them comparable we multiple the shRNA z-scores by -1</p>
 <pre class="r"><code>githubURL &lt;- &quot;https://github.com/hw15842/L1000_protein_pair_trait_MR/blob/master/Data/L1000_prot_pair_averages.rdata?raw=true&quot;
 load(url(githubURL))
 head(L1000_prot_pair_averages)</code></pre>
@@ -226,25 +226,68 @@ head(L1000_prot_pair_averages)</code></pre>
 <div id="extracting-significant-z-scores" class="section level2">
 <h2>Extracting significant z-scores</h2>
 <p>We use the pnorm() func to turn the z-scores into p-values</p>
-<p>we determine if it is a significant p-value by dividing 0.05 by 401,080 - this is the number of original protein pairs before adding &quot;forward and reverse&quot; prot pairs</p>
-<pre class="r"><code>L1000_prot_pair_averages$pval_mean_z &lt;- pnorm(L1000_prot_pair_averages$mean)
-L1000_prot_pair_averages$sig_zscore &lt;- ifelse(L1000_prot_pair_averages$pval_mean_z &lt; (0.05/401080), &quot;Yes&quot;, &quot;No&quot;)
+<p>We need to use the absolute value of the Z-score with lower.tail set to False to be able to accurately compare the p-values. We then also need to multiple the p-value by 2 to get a threshold of 0.05 (rather than 0.25 for a one tailed test)</p>
+<p>We determine if it is a significant p-value by dividing 0.05 by 401,080 - this is the number of original protein pairs before adding &quot;forward and reverse&quot; prot pairs</p>
+<pre class="r"><code>L1000_prot_pair_averages$pval_mean_z &lt;- (pnorm(abs(L1000_prot_pair_averages$mean), lower.tail=F))*2
+L1000_prot_pair_averages$sig_zscore_mean &lt;- ifelse(L1000_prot_pair_averages$pval_mean_z &lt; (0.05/401080), &quot;Yes&quot;, &quot;No&quot;)
 
-table(L1000_prot_pair_averages$sig_zscore)</code></pre>
+table(L1000_prot_pair_averages$sig_zscore_mean)</code></pre>
 <pre><code>## 
-##     No 
-## 194508</code></pre>
-<pre class="r"><code># None of the protein pairs have a significant z-score at this threshold
+##     No    Yes 
+## 194507      1</code></pre>
+<pre class="r"><code># Only 1 of the protein pairs have a significant z-score at this threshold
 
 # Just look at 0.05 threshold
 
-L1000_prot_pair_averages$sig_zscore &lt;- ifelse(L1000_prot_pair_averages$pval_mean_z &lt; 0.05, &quot;Yes&quot;, &quot;No&quot;)
+L1000_prot_pair_averages$sig_zscore_mean &lt;- ifelse(L1000_prot_pair_averages$pval_mean_z &lt; 0.05, &quot;Yes&quot;, &quot;No&quot;)
 
-table(L1000_prot_pair_averages$sig_zscore)</code></pre>
+table(L1000_prot_pair_averages$sig_zscore_mean)</code></pre>
 <pre><code>## 
 ##     No    Yes 
-## 194460     48</code></pre>
-<p>So there are only 48 protein pairs that are significant at the very high threshold of 0.05..</p>
+## 194426     82</code></pre>
+<p>So there are only 82 protein pairs that are significant at the very high threshold of 0.05</p>
+</div>
+<div id="looking-at-maximum-rather-than-average" class="section level2">
+<h2>Looking at maximum rather than average</h2>
+<p>Rather than using the average of the z-scores, we will look at the largest value. The different z-scores come from the different cell lines in which the analysis took place</p>
+<p>We need to determine the <strong>absolute</strong> largest Z-score (i.e. the &quot;largest&quot; negative number or largest positive number)</p>
+<p>We can also do FDR correction for multiple testing which is slightly less stringent</p>
+<pre class="r"><code>L1000_prot_pair_averages$sig_zscore_mean &lt;- NULL
+
+L1000_prot_pair_averages$largest &lt;- ifelse(abs(L1000_prot_pair_averages$min) &gt; abs(L1000_prot_pair_averages$max), L1000_prot_pair_averages$min, L1000_prot_pair_averages$max)
+
+L1000_prot_pair_averages$pval_max_z &lt;- (pnorm(abs(L1000_prot_pair_averages$largest), lower.tail=F))*2
+
+L1000_prot_pair_averages$fdr &lt;- p.adjust(L1000_prot_pair_averages$pval_max_z, &quot;fdr&quot;)
+
+table(L1000_prot_pair_averages$fdr &lt; 0.05)</code></pre>
+<pre><code>## 
+##  FALSE   TRUE 
+## 189400   5108</code></pre>
+<p>This now gives us 5108 protein pairs that pass multiple testing threshold.</p>
+</div>
+<div id="comparing-l1000-to-protein-pair-mr" class="section level1">
+<h1>Comparing L1000 to protein pair MR</h1>
+<p>We are going to look at multiple ways of comparing the L1000 protein pairs to our MR results for the protein pairs</p>
+<div id="get-the-r2-values" class="section level2">
+<h2>Get the R<sup>2</sup> values</h2>
+<p>We need to get the R<sup>2</sup> values for the SNP on the exposure and the SNP on the outcome for all the protein pairs</p>
+<p>If the SNP-exposure has the larger R<sup>2</sup> , it might suggest that the exposure influences the outcome and vice versa.</p>
+<p>We can also use stieger filtering to determine if one R<sup>2</sup> is significantly loarger than the other.</p>
+</div>
+<div id="does-the-direction-of-the-r2-correlate-with-the-direction-of-the-z-score" class="section level2">
+<h2>Does the direction of the R<sup>2</sup> correlate with the direction of the Z-score?</h2>
+<p>Does the direction of the R<sup>2</sup> match the direction as predicted by the L1000 data for the protein pairs</p>
+</div>
+<div id="does-the-beta-correlate-with-the-z-score" class="section level2">
+<h2>Does the <em>Beta</em> correlate with the Z-score</h2>
+<p>We have the <em>beta</em> values for the MR of the protein pairs</p>
+<p>Does the direction of the <em>beta</em> correlate with the direction of the Z-score</p>
+</div>
+<div id="how-often-do-we-get-a-significant-mr-and-a-significant-l1000-protein-pair" class="section level2">
+<h2>How often do we get a significant MR and a significant L1000 protein pair</h2>
+<p>How often are we finding the a significant MR is also significant in the L1000 data.</p>
+</div>
 </div>
 
 
