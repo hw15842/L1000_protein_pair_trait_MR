@@ -13,6 +13,7 @@ library(TwoSampleMR)
 
 setwd(paste0(results_location) ### saveing these to the "data" folder in the git hub repository to use with the rmarkdown script 
 
+
 load(paste0(data_location, "Zheng_pQTLs_with_file_names.rdata")) ## not adding this file or the significant MRs to the Data folder as sig MRs too big so just extracting them from their original locations 
 load(paste0(data_location, "significant_MRs.rdata"))
 
