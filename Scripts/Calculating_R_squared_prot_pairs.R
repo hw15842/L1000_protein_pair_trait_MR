@@ -13,6 +13,9 @@ library(TwoSampleMR)
 
 setwd(paste0(results_location) ### saving these to the "data" folder in the git hub repository to use with the rmarkdown script 
 
+df <- data.frame(c(1:3), c(1:3))
+df
+
 getwd()
 
 load("/mnt/storage/scratch/hw15842/protein_interactions/network_comparisons/Data/Zheng_pQTLs_with_file_names.rdata")
