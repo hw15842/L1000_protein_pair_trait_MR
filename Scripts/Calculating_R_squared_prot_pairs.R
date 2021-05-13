@@ -11,8 +11,12 @@ data_location <- toString(args[2])
 library(dplyr)
 library(TwoSampleMR)
 
-setwd(paste0(results_location) ### saveing these to the "data" folder in the git hub repository to use with the rmarkdown script 
+setwd(paste0(results_location) ### saving these to the "data" folder in the git hub repository to use with the rmarkdown script 
 
+getwd()
+
+load("/mnt/storage/scratch/hw15842/protein_interactions/network_comparisons/Data/Zheng_pQTLs_with_file_names.rdata")
+load("/mnt/storage/scratch/hw15842/protein_interactions/network_comparisons/Data/significant_MRs.rdata")
 
 load(paste0(data_location, "Zheng_pQTLs_with_file_names.rdata")) ## not adding this file or the significant MRs to the Data folder as sig MRs too big so just extracting them from their original locations 
 load(paste0(data_location, "significant_MRs.rdata"))
