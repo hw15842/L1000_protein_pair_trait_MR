@@ -19,7 +19,11 @@ load(paste0(data_location, "significant_MRs.rdata"))
 
 
 exposure_ids <- as.character(unique(Zheng_pQTLs_with_file_names$prot_file_name))
+exposure_ids <- na.omit(exposure_ids)
+
 outcome_ids <- as.character(unique(significant_MRs$lower.outcome))
+outcome_ids <- na.omit(outcome_ids)
+
 
 expdat <- lapply(exposure_ids, extract_instruments) %>% bind_rows()
 
