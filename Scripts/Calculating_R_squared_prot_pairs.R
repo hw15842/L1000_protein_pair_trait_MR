@@ -79,12 +79,25 @@ colnames(df2) <- c("exposure_platform_id", "exposure_file_name")
 
 df3 <- merge(df1, df2, by="exposure_platform_id")
 
+df3 <- na.omit(df3)
 
+
+## The Suhre data is not the same as the mrbase ids so need to change it to same format
+
+suhre_exp <- df3[grep("one.out.gz", df3$exposure_file_name),]
+suhre_exp$exposure_platform_id <- gsub("-", "_", suhre_exp$exposure_platform_id)
+suhre_exp$mrbase_id <- paste0("prot-c-", suhre_exp$exposure_platform_id)
+
+df3 <- df3[-grep("one.out.gz", df3$exposure_file_name),]
+
+df3$mrbase_id <- df3$exposure_file_name
+
+df3 <- rbind(df3, suhre_exp)
 
 extract_dat_func <- function(x){
 
 	df <- df3[x,]
-	exp <- extract_instruments(df$exposure_file_name)
+	exp <- extract_instruments(df$mrbase_id)
 	out <- extract_outcome_data(df$SNP, df$lower.outcome)
 	exp_out_harm <- harmonise_data(exp, out, action=1)
 	rsq_dat <- steiger_filtering(exp_out_harm)
