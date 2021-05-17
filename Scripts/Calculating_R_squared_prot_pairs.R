@@ -94,6 +94,12 @@ df3$mrbase_id <- df3$exposure_file_name
 
 df3 <- rbind(df3, suhre_exp)
 
+df3 <- df3[-grep("prot-b-12", df3$exposure_file_name),]
+df3 <- df3[-grep("prot-b-24", df3$exposure_file_name),]
+
+
+## 
+
 extract_dat_func <- function(x){
 
 	df <- df3[x,]
