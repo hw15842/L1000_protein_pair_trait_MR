@@ -98,8 +98,8 @@ df3 <- rbind(df3, suhre_exp)
 
 ## remove protb12 and 24 as they dont extract the same instruments as Chris used 
 
-df3 <- df3[-grep("prot-b-12", df3$exposure_file_name),]
-df3 <- df3[-grep("prot-b-24", df3$exposure_file_name),]
+df3 <- df3[-grep("prot-b-12", df3$mrbase_id),]
+df3 <- df3[-grep("prot-b-24", df3$mrbase_id),]
 
 
 ## extract the exposures first 
