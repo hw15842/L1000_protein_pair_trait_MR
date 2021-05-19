@@ -8,6 +8,7 @@ results_location <- toString(args[1])
 data_location <- toString(args[2])
 
 
+
 library(dplyr)
 library(TwoSampleMR)
 library(plyr)
@@ -31,6 +32,7 @@ load(paste0(data_location, "significant_MRs.rdata"))
 # 
 # # expdat <- lapply(exposure_ids, extract_instruments) %>% bind_rows()
 # load("expdat.rdata")
+# this file is wrong 
 # 
 # save(expdat, file="expdat.rdata")
 # 
@@ -94,16 +96,25 @@ df3$mrbase_id <- df3$exposure_file_name
 
 df3 <- rbind(df3, suhre_exp)
 
+## remove protb12 and 24 as they dont extract the same instruments as Chris used 
+
 df3 <- df3[-grep("prot-b-12", df3$exposure_file_name),]
 df3 <- df3[-grep("prot-b-24", df3$exposure_file_name),]
 
 
-## 
+## extract the exposures first 
+
+exposure_ids <- as.character(unique(df3$mrbase_id))
+
+expdat <- lapply(exposure_ids, extract_instruments) %>% bind_rows()
+save(expdat, file="expdat.rdata")
+
+
 
 extract_dat_func <- function(x){
 
 	df <- df3[x,]
-	exp <- extract_instruments(df$mrbase_id)
+	exp <- subset(expdat, expdat$id.exposure == df$mrbase_id & expdat$SNP == df$SNP)
 	out <- extract_outcome_data(df$SNP, df$lower.outcome)
 	exp_out_harm <- harmonise_data(exp, out, action=1)
 	rsq_dat <- steiger_filtering(exp_out_harm)
@@ -112,11 +123,10 @@ extract_dat_func <- function(x){
 
 
 rsq_dat <- lapply(1:nrow(df3), extract_dat_func)
-rsq_dat <- ldply(rsq_dat, data.table)
-
 save(rsq_dat, file="rsq_dat.rdata")
 
-
+rsq_dat_table <- ldply(rsq_dat, data.table)
+save(rsq_dat_table, file="rsq_dat_table.rdata")
 
 
 
