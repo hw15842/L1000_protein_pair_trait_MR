@@ -104,41 +104,6 @@ We can also use stieger filtering to determine if one R^2^ is significantly loar
 
 ```{r}
 
-## do this elsewhere and read in data file - norm R script 
-library(dplyr)
-library(TwoSampleMR)
-
-exposure_ids <- c() ## unique (expo ) prot file name in Zheng file is the MRbase ids 
-outcome_ids <- c()
-
-expdat <- lapply(exposure_ids, extract_instruments) %>% bind_rows()
-
-l <- list()
-m <- list()
-for(i in 1:length(outcome_ids))
-{
-	# get list of exposures to test on outcome
-	exps <- subset(significant_MRs, id.outcome == outcome_ids[i])$id.exposure %>% unique()
-	# Get instruments for the exposures that you need for this outcome
-	snps <- subset(expdat, id.exposure  %in% exps)$SNP
-
-	# extract
-	l[[i]] <- extract_outcome_data(snps, outcome_ids[i])
-
-	# harmonise
-	e <- subset(expdat, exps %in% id.exposure)
-	m[[i]] <- harmonise_data(e, l[[i]], action=1)
-}
-
-outdat <- bind_rows(l)
-dat <- bind_rows(m)
-
-# get rsq
-
-dat2 <- steiger_filtering(dat)
-
-
-# save dat expdat and outdat so you don't need to extract again
 
 
 ```

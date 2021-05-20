@@ -106,9 +106,9 @@ df3 <- df3[-grep("prot-b-24", df3$mrbase_id),]
 
 exposure_ids <- as.character(unique(df3$mrbase_id))
 
-expdat <- lapply(exposure_ids, extract_instruments) %>% bind_rows()
-save(expdat, file="expdat.rdata")
-
+#expdat <- lapply(exposure_ids, extract_instruments) %>% bind_rows()
+#save(expdat, file="expdat.rdata")
+load("expdat.rdata")  ## loading in now as script ran out of time previously 
 
 
 extract_dat_func <- function(x){
