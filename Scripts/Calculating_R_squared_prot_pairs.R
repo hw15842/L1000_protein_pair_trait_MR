@@ -6,6 +6,7 @@
 args  <-  commandArgs(trailingOnly=TRUE)
 results_location <- toString(args[1])
 data_location <- toString(args[2])
+df_num <- toString(args[3])
 
 
 
@@ -19,6 +20,14 @@ setwd(paste0(results_location)) ### saving these to the "data" folder in the git
 
 load(paste0(data_location, "Zheng_pQTLs_with_file_names.rdata")) ## not adding this file or the significant MRs to the Data folder as sig MRs too big so just extracting them from their original locations 
 load(paste0(data_location, "significant_MRs.rdata"))
+
+
+df_num <- unlist(regmatches(df_num, gregexpr('\\(?[0-9,.]+', df_num))) ### This stops it pasting the full "--section_of_subset=1" and just keeps the "1" 
+
+df_num <- as.numeric(noquote(df_num))
+
+df_num
+
 
 #### Changing from this method from Gib as too hard to trouble shoot someone elses code
 
@@ -104,14 +113,8 @@ df3 <- df3[-grep("prot-b-24", df3$mrbase_id),]
 
 #### Split into sections of 100,000 to save sections as taking a long time and timing out / if errors looses everything 
 
-df4 <- df3[1:100000,]
-df5 <- df3[100001:200000,]
-df6 <- df3[100001:200000,]
-df7 <- df3[200001:300000,]
-df8 <- df3[300001:400000,]
-df9 <- df3[400001:466079,]
 
-
+df_split <- split(df3, (seq(nrow(df3))-1) %/% 1000) 
 
 
 ## extract the exposures first 
@@ -134,42 +137,12 @@ extract_dat_func <- function(x, df_num){
 }
 
 
-rsq_dat_1 <- lapply(1:nrow(df4), extract_dat_func, df_num=df4)
-save(rsq_dat_1, file="rsq_dat_1.rdata")
-rsq_dat_table_1 <- ldply(rsq_dat_1, data.table)
-save(rsq_dat_table_1, file="rsq_dat_table_1.rdata")
 
 
-rsq_dat_2 <- lapply(1:nrow(df5), extract_dat_func, df_num=df5)
-save(rsq_dat_2, file="rsq_dat_2.rdata")
-rsq_dat_table_2 <- ldply(rsq_dat_2, data.table)
-save(rsq_dat_table_2, file="rsq_dat_table_2.rdata")
-
-
-rsq_dat_3 <- lapply(1:nrow(df6), extract_dat_func, df_num=df6)
-save(rsq_dat_3, file="rsq_dat_3.rdata")
-rsq_dat_table_3 <- ldply(rsq_dat_3, data.table)
-save(rsq_dat_table_3, file="rsq_dat_table_3.rdata")
-
-
-rsq_dat_4 <- lapply(1:nrow(df7), extract_dat_func, df_num=df7)
-save(rsq_dat_4, file="rsq_dat_4.rdata")
-rsq_dat_table_4 <- ldply(rsq_dat_4, data.table)
-save(rsq_dat_table_4, file="rsq_dat_table_4.rdata")
-
-
-
-rsq_dat_5 <- lapply(1:nrow(df8), extract_dat_func, df_num=df8)
-save(rsq_dat_5, file="rsq_dat_5.rdata")
-rsq_dat_table_5 <- ldply(rsq_dat_5, data.table)
-save(rsq_dat_table_5, file="rsq_dat_table_5.rdata")
-
-
-
-rsq_dat_6 <- lapply(1:nrow(df9), extract_dat_func, df_num=df9)
-save(rsq_dat_6, file="rsq_dat_6.rdata")
-rsq_dat_table_6 <- ldply(rsq_dat_6, data.table)
-save(rsq_dat_table_6, file="rsq_dat_table_6.rdata")
+rsq_dat <- lapply(1:nrow(df_split[[df_num]]), extract_dat_func, df_num=df_split[[df_num]])
+save(rsq_dat, file=paste0("rsq_dat_", df_num, ".rdata"))
+rsq_dat_table <- ldply(rsq_dat, data.table)
+save(rsq_dat_table, file=paste0("rsq_dat_table_", df_num, ".rdata"))
 
 
 
