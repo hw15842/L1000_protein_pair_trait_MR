@@ -102,6 +102,18 @@ df3 <- df3[-grep("prot-b-12", df3$mrbase_id),]
 df3 <- df3[-grep("prot-b-24", df3$mrbase_id),]
 
 
+#### Split into sections of 100,000 to save sections as taking a long time and timing out / if errors looses everything 
+
+df4 <- df3[1:100000,]
+df5 <- df3[100001:200000,]
+df6 <- df3[100001:200000,]
+df7 <- df3[200001:300000,]
+df8 <- df3[300001:400000,]
+df9 <- df3[400001:466079,]
+
+
+
+
 ## extract the exposures first 
 
 exposure_ids <- as.character(unique(df3$mrbase_id))
@@ -111,22 +123,59 @@ exposure_ids <- as.character(unique(df3$mrbase_id))
 load("expdat.rdata")  ## loading in now as script ran out of time previously 
 
 
-extract_dat_func <- function(x){
+extract_dat_func <- function(x, df_num){
 
-	df <- df3[x,]
+	df <- df_num[x,]
 	exp <- subset(expdat, expdat$id.exposure == df$mrbase_id & expdat$SNP == df$SNP)
-	out <- extract_outcome_data(df$SNP, df$lower.outcome)
+	out <- extract_outcome_data(df$SNP, df$lower.outcome, proxies=F)
 	exp_out_harm <- harmonise_data(exp, out, action=1)
 	rsq_dat <- steiger_filtering(exp_out_harm)
 	return(rsq_dat)
 }
 
 
-rsq_dat <- lapply(1:nrow(df3), extract_dat_func)
-save(rsq_dat, file="rsq_dat.rdata")
+rsq_dat_1 <- lapply(1:nrow(df4), extract_dat_func, df_num=df4)
+save(rsq_dat_1, file="rsq_dat_1.rdata")
+rsq_dat_table_1 <- ldply(rsq_dat_1, data.table)
+save(rsq_dat_table_1, file="rsq_dat_table_1.rdata")
 
-rsq_dat_table <- ldply(rsq_dat, data.table)
-save(rsq_dat_table, file="rsq_dat_table.rdata")
+
+rsq_dat_2 <- lapply(1:nrow(df5), extract_dat_func, df_num=df5)
+save(rsq_dat_2, file="rsq_dat_2.rdata")
+rsq_dat_table_2 <- ldply(rsq_dat_2, data.table)
+save(rsq_dat_table_2, file="rsq_dat_table_2.rdata")
+
+
+rsq_dat_3 <- lapply(1:nrow(df6), extract_dat_func, df_num=df6)
+save(rsq_dat_3, file="rsq_dat_3.rdata")
+rsq_dat_table_3 <- ldply(rsq_dat_3, data.table)
+save(rsq_dat_table_3, file="rsq_dat_table_3.rdata")
+
+
+rsq_dat_4 <- lapply(1:nrow(df7), extract_dat_func, df_num=df7)
+save(rsq_dat_4, file="rsq_dat_4.rdata")
+rsq_dat_table_4 <- ldply(rsq_dat_4, data.table)
+save(rsq_dat_table_4, file="rsq_dat_table_4.rdata")
+
+
+
+rsq_dat_5 <- lapply(1:nrow(df8), extract_dat_func, df_num=df8)
+save(rsq_dat_5, file="rsq_dat_5.rdata")
+rsq_dat_table_5 <- ldply(rsq_dat_5, data.table)
+save(rsq_dat_table_5, file="rsq_dat_table_5.rdata")
+
+
+
+rsq_dat_6 <- lapply(1:nrow(df9), extract_dat_func, df_num=df9)
+save(rsq_dat_6, file="rsq_dat_6.rdata")
+rsq_dat_table_6 <- ldply(rsq_dat_6, data.table)
+save(rsq_dat_table_6, file="rsq_dat_table_6.rdata")
+
+
+
+
+
+
 
 
 
