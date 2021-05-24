@@ -3,7 +3,7 @@
 #SBATCH --job-name=rsq
 #SBATCH --nodes=1
 #SBATCH --time=12:00:00
-#SBATCH --array=1-467
+#SBATCH --array=1-467%4
 #SBATCH --mem=10000M
 #SBATCH --output=slurm-%A_%a.out
 #SBATCH --partition=serial
