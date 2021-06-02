@@ -3,9 +3,6 @@
 ##############################
 
 
-args  <-  commandArgs(trailingOnly=TRUE)
-data_location <- toString(args[1])
-
 setwd("/mnt/storage/scratch/hw15842/L1000/Data/")
 
 library(dplyr)
