@@ -11,4 +11,4 @@
 
 echo "Running on ${HOSTNAME}"
 module add languages/r/3.6.2
-Rscript combining_rsq_data.R 
+Rscript combining_rsq_data.R /mnt/storage/scratch/hw15842/repo/L1000_protein_pair_trait_MR/Data
