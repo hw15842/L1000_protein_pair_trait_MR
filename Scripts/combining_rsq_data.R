@@ -26,5 +26,5 @@ rsq_dat <- bind_rows(rsq_dat)
 head(rsq_dat)
 nrow(rsq_dat)
 
-save(rsq_dat, file=paste0(data_location, "rsq_dat.rdata"))
+save(rsq_dat, file=paste0(data_location, "/rsq_dat.rdata"))
 
