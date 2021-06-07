@@ -264,7 +264,7 @@ table(L1000_prot_pair_averages$fdr &lt; 0.05)</code></pre>
 <pre><code>## 
 ##  FALSE   TRUE 
 ## 189400   5108</code></pre>
-<p>This now gives us 5108 protein pairs that pass multiple testing threshold.</p>
+<p>This now gives us 194,508 protein pairs that are in the L1000 data with 5,108 protein pairs that pass multiple testing threshold.</p>
 </div>
 <div id="comparing-l1000-to-protein-pair-mr" class="section level1">
 <h1>Comparing L1000 to protein pair MR</h1>
@@ -273,11 +273,155 @@ table(L1000_prot_pair_averages$fdr &lt; 0.05)</code></pre>
 <h2>Get the R<sup>2</sup> values</h2>
 <p>We need to get the R<sup>2</sup> values for the SNP on the exposure and the SNP on the outcome for all the protein pairs</p>
 <p>If the SNP-exposure has the larger R<sup>2</sup> , it might suggest that the exposure influences the outcome and vice versa.</p>
-<p>We can also use stieger filtering to determine if one R<sup>2</sup> is significantly loarger than the other.</p>
+<p>We can also use stieger filtering to determine if one R<sup>2</sup> is significantly larger than the other.</p>
+<p>We calculated the R<sup>2</sup> values using the <a href="https://github.com/hw15842/L1000_protein_pair_trait_MR/blob/master/Scripts/Calculating_R_squared_prot_pairs.R">Calculating_R_squared_prot_pairs.R</a> script which ran the data iteratively to stop it timing out We combined the R<sup>2</sup> tables from the iterative analysis in the <a href="https://github.com/hw15842/L1000_protein_pair_trait_MR/blob/master/Scripts/combining_rsq_data.R">combining_rsq_data.R</a> script</p>
+<p>read in the rsq data table - this is too large to be uploaded via git so have just downloaded it via filezila to my computer</p>
+<pre class="r"><code>load(&quot;/Users/hw15842/Documents/PhD_work/Chapter4_L1000_MR_triplicates_analyses/L1000_protein_pair_trait_MR/Data/rsq_dat.rdata&quot;)
+head(rsq_dat, n=3)</code></pre>
+<pre><code>##          SNP effect_allele.exposure other_allele.exposure effect_allele.outcome
+## 1 rs11667946                      T                     C                     T
+## 2 rs33988101                      T                     G                     T
+## 3 rs33988101                      T                     G                     T
+##   other_allele.outcome beta.exposure beta.outcome eaf.exposure eaf.outcome
+## 1                    C       -0.2984       0.1368       0.4730     0.54706
+## 2                    G        0.1401       0.1116       0.4811     0.48110
+## 3                    G        0.1401       0.1116       0.4811     0.48110
+##   remove palindromic ambiguous  id.outcome chr      pos se.outcome
+## 1  FALSE       FALSE     FALSE prot-a-1666  19 51474241     0.0264
+## 2  FALSE       FALSE     FALSE   prot-b-48  19 49218111     0.0238
+## 3  FALSE       FALSE     FALSE   prot-b-48  19 49218111     0.0238
+##   samplesize.outcome pval.outcome                                    outcome
+## 1               3301  2.18776e-07             Kallikrein-7 || id:prot-a-1666
+## 2               3394  2.72402e-06 matrix metallopeptidase 10 || id:prot-b-48
+## 3               3394  2.72402e-06 matrix metallopeptidase 10 || id:prot-b-48
+##         originalname.outcome                 outcome.deprecated mr_keep.outcome
+## 1               Kallikrein-7               Kallikrein-7 ||  ||             TRUE
+## 2 matrix metallopeptidase 10 matrix metallopeptidase 10 ||  ||             TRUE
+## 3 matrix metallopeptidase 10 matrix metallopeptidase 10 ||  ||             TRUE
+##   data_source.outcome se.exposure samplesize.exposure pval.exposure
+## 1                 igd      0.0377                3394   3.38610e-15
+## 2                 igd      0.0237                3394   3.82904e-09
+## 3                 igd      0.0237                3394   3.82904e-09
+##   chr.exposure pos.exposure id.exposure
+## 1           19     51474241    prot-b-5
+## 2           19     49218111    prot-b-6
+## 3           19     49218111    prot-b-6
+##                                        exposure mr_keep.exposure
+## 1 kallikrein related peptidase 6 || id:prot-b-5             TRUE
+## 2                     galectin 3 || id:prot-b-6             TRUE
+## 3                     galectin 3 || id:prot-b-6             TRUE
+##   pval_origin.exposure data_source.exposure action mr_keep units.outcome
+## 1             reported                  igd      1    TRUE            NA
+## 2             reported                  igd      1    TRUE            NA
+## 3             reported                  igd      1    TRUE            NA
+##   units.exposure rsq.exposure effective_n.exposure rsq.outcome
+## 1             NA   0.01812296                 3394 0.008109922
+## 2             NA   0.01018184                 3394 0.006466317
+## 3             NA   0.01018184                 3394 0.006466317
+##   effective_n.outcome steiger_dir steiger_pval
+## 1                3301        TRUE   0.06490632
+## 2                3394        TRUE   0.39488141
+## 3                3394        TRUE   0.39488141</code></pre>
+<pre class="r"><code>nrow(rsq_dat)</code></pre>
+<pre><code>## [1] 458002</code></pre>
+<pre class="r"><code>nrow(unique(rsq_dat))</code></pre>
+<pre><code>## [1] 380977</code></pre>
+<pre class="r"><code>## When creating the rsq_dat file, some of the outcome proteins were in the dataset twice because of there being two seperate pQTLs for them
+## We don't need the pQTLs, it just means some have been run twice, so we can now just keep the unique rows
+
+rsq_dat &lt;- unique(rsq_dat)</code></pre>
 </div>
 <div id="does-the-direction-of-the-r2-correlate-with-the-direction-of-the-z-score" class="section level2">
 <h2>Does the direction of the R<sup>2</sup> correlate with the direction of the Z-score?</h2>
 <p>Does the direction of the R<sup>2</sup> match the direction as predicted by the L1000 data for the protein pairs</p>
+<p><strong>Re-cap</strong></p>
+<p>R<sup>2</sup></p>
+<ul>
+<li>We have an R<sup>2</sup> for the exposure and outcome protein in the rsq_dat table</li>
+<li>the largest R<sup>2</sup> for the exposure or outcome is the protein that goes &quot;first&quot;</li>
+<li>steiger filtering can benuse to determine if there is a significant difference between the two R<sup>2</sup> values</li>
+</ul>
+<p>L1000</p>
+<ul>
+<li>the &quot;largest&quot; column is the largest number in either &quot;max&quot; or &quot;min&quot; collumne</li>
+<li>i.e. the largest absolute Z-score, but has kept the sign (-/+)</li>
+<li>the direction is prot 1 on prot 2 as that is what we extracted from the L1000 dataset</li>
+<li>we also did the reverse so if the reverse was in the dataset it is also in there</li>
+</ul>
+<pre class="r"><code>## keep just the steiger columns from rsq_dat
+
+rsq_dat_steiger_info &lt;- subset(rsq_dat, select=c(id.exposure, id.outcome, SNP, rsq.exposure, rsq.outcome, steiger_dir, steiger_pval))
+table(rsq_dat_steiger_info$steiger_dir)</code></pre>
+<pre><code>## 
+##  FALSE   TRUE 
+##  88612 292365</code></pre>
+<pre class="r"><code>load(&quot;/Users/hw15842/Documents/PhD_work/protein_interactions/Data/protein_linker_file.rdata&quot;)
+head(protein_linker_file)</code></pre>
+<pre><code>##   protein_number       protein_ID protein_name
+## 1    prot-a-1000 EWSR1.12988.49.3        EWSR1
+## 2    prot-a-1001  EXOSC1.7930.3.3       EXOSC1
+## 3    prot-a-1002 EXOSC3.12605.1.3       EXOSC3
+## 4    prot-a-1003  EXTL2.6528.95.3        EXTL2
+## 5    prot-a-1004    EZR.9753.17.3          EZR
+## 6    prot-a-1005    F10.3077.66.2          F10</code></pre>
+<p>The protein linker file only has the names of the prot-a proteins, this is ok as this was also used to create the &quot;all_real_prot_on_prot&quot; data file which was used to extract the data from the L1000 data base.</p>
+<pre class="r"><code>num_exp_prot_a &lt;- length(grep(&quot;prot-a&quot;, rsq_dat_steiger_info$id.exposure))
+num_exp_prot_a</code></pre>
+<pre><code>## [1] 378244</code></pre>
+<pre class="r"><code>num_out_prot_a &lt;- length(grep(&quot;prot-a&quot;, rsq_dat_steiger_info$id.outcome))
+num_out_prot_a</code></pre>
+<pre><code>## [1] 380410</code></pre>
+<pre class="r"><code>nrow(rsq_dat_steiger_info) - num_exp_prot_a</code></pre>
+<pre><code>## [1] 2733</code></pre>
+<pre class="r"><code>nrow(rsq_dat_steiger_info) - num_out_prot_a</code></pre>
+<pre><code>## [1] 567</code></pre>
+<p>so we only loose 2733 expsure proteins and 567 outcome proteins of the total 380,977 protein pairs but just using the prot-a data This data wasnt extracted from the L1000 data set anyway</p>
+<pre class="r"><code>rsq_dat_steiger_info &lt;- merge(rsq_dat_steiger_info, protein_linker_file, by.x=&quot;id.exposure&quot;, by.y=&quot;protein_number&quot;)
+names(rsq_dat_steiger_info)[7:8] &lt;- c(&quot;Exposure_protein_ID&quot;,&quot;Exposure_protein_name&quot;)
+
+rsq_dat_steiger_info &lt;- merge(rsq_dat_steiger_info, protein_linker_file, by.x=&quot;id.outcome&quot;, by.y=&quot;protein_number&quot;)
+names(rsq_dat_steiger_info)[9:10] &lt;- c(&quot;Outcome_prtein_ID&quot;,&quot;Outcome_protein_name&quot;)
+
+
+head(rsq_dat_steiger_info)</code></pre>
+<pre><code>##   id.outcome id.exposure       SNP rsq.exposure rsq.outcome steiger_dir
+## 1   prot-a-1 prot-a-1842 rs2228243   0.24195466  0.01315152        TRUE
+## 2   prot-a-1 prot-a-2184 rs2304456   0.24040975  0.04714217        TRUE
+## 3   prot-a-1 prot-a-2889 rs2304456   0.05851737  0.04714217        TRUE
+## 4   prot-a-1 prot-a-3016 rs2228243   0.06800738  0.01315152        TRUE
+## 5   prot-a-1 prot-a-1783 rs2228243   0.20367615  0.01315152        TRUE
+## 6  prot-a-10 prot-a-2243 rs8176743   0.01991011  0.03978018       FALSE
+##   Exposure_protein_ID Exposure_protein_name Outcome_prtein_ID
+## 1        3.056620e-66      MAP2K4.5242.37.3            MAP2K4
+## 2        1.177585e-37     PARP16.7881.244.3            PARP16
+## 3        2.880829e-01        STX7.8274.64.3              STX7
+## 4        7.152374e-10    TMEM87B.13485.20.3           TMEM87B
+## 5        2.488098e-51      LRPPRC.9046.46.3            LRPPRC
+## 6        1.465178e-02       PEAR1.8275.31.3             PEAR1
+##   Outcome_protein_name protein_name.y
+## 1      A1CF.12423.38.3           A1CF
+## 2      A1CF.12423.38.3           A1CF
+## 3      A1CF.12423.38.3           A1CF
+## 4      A1CF.12423.38.3           A1CF
+## 5      A1CF.12423.38.3           A1CF
+## 6        ABO.9253.52.3            ABO</code></pre>
+<pre class="r"><code>head(L1000_prot_pair_averages)</code></pre>
+<pre><code>##   prot_1 prot_2 num_tests        min          Q1      median        mean
+## 1 MAP2K4   A1CF        13 -0.6942676 -0.30767131 -0.18289389  0.05553919
+## 2 LRPPRC   A1CF        10 -1.0959874 -0.57881256 -0.25209726 -0.25232022
+## 3   KNG1   A1CF        17 -1.2938634 -0.34926003  0.03797939 -0.08744798
+## 4  LCMT1   A1CF        17 -1.4679012 -0.26024830  0.05413373  0.13523771
+## 5   CD36    ABO         1 -0.8581429 -0.85814285 -0.85814285 -0.85814285
+## 6   JAG1    ABO        11 -1.5405304 -0.09926663  0.18179706  0.02880943
+##           Q3        max pval_mean_z    largest pval_max_z       fdr
+## 1  0.4066875  0.7944757   0.9557089  0.7944757 0.42691856 0.5386202
+## 2  0.2394815  0.4173163   0.8007936 -1.0959874 0.27308427 0.4942613
+## 3  0.4340315  0.7213000   0.9303154 -1.2938634 0.19571260 0.4940715
+## 4  0.6938947  1.6794713   0.8924239  1.6794713 0.09306024 0.4940715
+## 5 -0.8581429 -0.8581429   0.3908136 -0.8581429 0.39081359 0.5217568
+## 6  0.3377429  0.7805317   0.9770166 -1.5405304 0.12343111 0.4940715</code></pre>
+<p>For the R<sup>2</sup> data, the &quot;steiger_dir&quot; column tells us whether the R-squared value is larger for the exposure (TRUE) or the outcome (FALSE).</p>
+<p>In the L1000 data we have the fdr adjusted pvalue to tell us if protein 1 significantly influences protein 2</p>
 </div>
 <div id="does-the-beta-correlate-with-the-z-score" class="section level2">
 <h2>Does the <em>Beta</em> correlate with the Z-score</h2>

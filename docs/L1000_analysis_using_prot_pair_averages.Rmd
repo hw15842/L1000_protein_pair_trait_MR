@@ -84,7 +84,8 @@ table(L1000_prot_pair_averages$fdr < 0.05)
 
 ```
 
-This now gives us 5108 protein pairs that pass multiple testing threshold. 
+This now gives us 194,508 protein pairs that are in the L1000 data with 5,108 protein pairs that pass multiple testing threshold. 
+
 
 
 # Comparing L1000 to protein pair MR 
@@ -98,12 +99,26 @@ We need to get the R^2^ values for the SNP on the exposure and the SNP on the ou
 
 If the SNP-exposure has the larger R^2^ , it might suggest that the exposure influences the outcome and vice versa. 
 
-We can also use stieger filtering to determine if one R^2^ is significantly loarger than the other.
+We can also use stieger filtering to determine if one R^2^ is significantly larger than the other.
 
+We calculated the R^2^ values using the [Calculating_R_squared_prot_pairs.R](https://github.com/hw15842/L1000_protein_pair_trait_MR/blob/master/Scripts/Calculating_R_squared_prot_pairs.R) script which ran the data iteratively to stop it timing out
+We combined the R^2^ tables from the iterative analysis in the [combining_rsq_data.R](https://github.com/hw15842/L1000_protein_pair_trait_MR/blob/master/Scripts/combining_rsq_data.R) script 
+
+read in the rsq data table - this is too large to be uploaded via git so have just downloaded it via filezila to my computer
 
 
 ```{r}
 
+
+load("/Users/hw15842/Documents/PhD_work/Chapter4_L1000_MR_triplicates_analyses/L1000_protein_pair_trait_MR/Data/rsq_dat.rdata")
+head(rsq_dat, n=3)
+nrow(rsq_dat)
+nrow(unique(rsq_dat))
+
+## When creating the rsq_dat file, some of the outcome proteins were in the dataset twice because of there being two seperate pQTLs for them
+## We don't need the pQTLs, it just means some have been run twice, so we can now just keep the unique rows
+
+rsq_dat <- unique(rsq_dat)
 
 
 ```
@@ -112,9 +127,76 @@ We can also use stieger filtering to determine if one R^2^ is significantly loar
 
 Does the direction of the R^2^ match the direction as predicted by the L1000 data for the protein pairs 
 
+**Re-cap**
+
+R^2^
+
+* We have an R^2^ for the exposure and outcome protein in the rsq_dat table 
+* the largest R^2^ for the exposure or outcome is the protein that goes "first" 
+* steiger filtering can benuse to determine if there is a significant difference between the two R^2^ values 
+      
+L1000
+
+* the "largest" column is the largest number in either "max" or "min" collumne 
+* i.e. the largest absolute Z-score, but has kept the sign (-/+)
+* the direction is prot 1 on prot 2 as that is what we extracted from the L1000 dataset
+* we also did the reverse so if the reverse was in the dataset it is also in there 
+      
+
+
 ```{r}
 
+## keep just the steiger columns from rsq_dat
+
+rsq_dat_steiger_info <- subset(rsq_dat, select=c(id.exposure, id.outcome, SNP, rsq.exposure, rsq.outcome, steiger_dir, steiger_pval))
+table(rsq_dat_steiger_info$steiger_dir)
+
+load("/Users/hw15842/Documents/PhD_work/protein_interactions/Data/protein_linker_file.rdata")
+head(protein_linker_file)
+
 ```
+
+The protein linker file only has the names of the prot-a proteins,  this is ok as this was also used to create the "all_real_prot_on_prot" data file which was used to extract the data from the L1000 data base. 
+
+```{r}
+num_exp_prot_a <- length(grep("prot-a", rsq_dat_steiger_info$id.exposure))
+num_exp_prot_a
+num_out_prot_a <- length(grep("prot-a", rsq_dat_steiger_info$id.outcome))
+num_out_prot_a
+
+nrow(rsq_dat_steiger_info) - num_exp_prot_a
+nrow(rsq_dat_steiger_info) - num_out_prot_a
+```
+
+so we only loose 2733 expsure proteins and 567 outcome proteins of the total 380,977 protein pairs but just using the prot-a data
+This data wasnt extracted from the L1000 data set anyway
+
+```{r}
+rsq_dat_steiger_info <- merge(rsq_dat_steiger_info, protein_linker_file, by.x="id.exposure", by.y="protein_number")
+names(rsq_dat_steiger_info)[7:8] <- c("Exposure_protein_ID","Exposure_protein_name")
+
+rsq_dat_steiger_info <- merge(rsq_dat_steiger_info, protein_linker_file, by.x="id.outcome", by.y="protein_number")
+names(rsq_dat_steiger_info)[9:10] <- c("Outcome_prtein_ID","Outcome_protein_name")
+
+
+head(rsq_dat_steiger_info)
+head(L1000_prot_pair_averages)
+```
+
+For the R^2^ data, the "steiger_dir" column tells us whether the R-squared value is larger for the exposure (TRUE) or the outcome (FALSE).
+
+In the L1000 data we have the fdr adjusted pvalue to tell us if protein 1 significantly influences protein 2 
+
+``` {r}
+
+
+
+
+```
+
+
+
+
 
 ## Does the *Beta* correlate with the Z-score 
 
