@@ -173,11 +173,12 @@ This data wasnt extracted from the L1000 data set anyway
 
 ```{r}
 rsq_dat_steiger_info <- merge(rsq_dat_steiger_info, protein_linker_file, by.x="id.exposure", by.y="protein_number")
-names(rsq_dat_steiger_info)[7:8] <- c("Exposure_protein_ID","Exposure_protein_name")
+names(rsq_dat_steiger_info)[8:9] <- c("Exposure_protein_ID","Exposure_protein_name")
 
 rsq_dat_steiger_info <- merge(rsq_dat_steiger_info, protein_linker_file, by.x="id.outcome", by.y="protein_number")
-names(rsq_dat_steiger_info)[9:10] <- c("Outcome_prtein_ID","Outcome_protein_name")
+names(rsq_dat_steiger_info)[10:11] <- c("Outcome_prtein_ID","Outcome_protein_name")
 
+rsq_dat_steiger_info <- rsq_dat_steiger_info[c(2,1,3:11)]  ## put the exposure column first 
 
 head(rsq_dat_steiger_info)
 head(L1000_prot_pair_averages)
@@ -188,14 +189,62 @@ For the R^2^ data, the "steiger_dir" column tells us whether the R-squared value
 In the L1000 data we have the fdr adjusted pvalue to tell us if protein 1 significantly influences protein 2 
 
 ``` {r}
+## Convert the rsq data to be the "correct" direction based in the steiger_dir column
 
+rsq_dat_steiger_info$prot_1 <- ifelse(rsq_dat_steiger_info$steiger_dir == "TRUE", paste0(rsq_dat_steiger_info$Exposure_protein_name), paste0(rsq_dat_steiger_info$Outcome_protein_name))
+rsq_dat_steiger_info$prot_2 <- ifelse(rsq_dat_steiger_info$steiger_dir == "TRUE", paste0(rsq_dat_steiger_info$Outcome_protein_name), paste0(rsq_dat_steiger_info$Exposure_protein_name))
 
+head(rsq_dat_steiger_info)
+head(L1000_prot_pair_averages)
 
+L1000_prot_pair_averages$prot_1 <- as.character(L1000_prot_pair_averages$prot_1)
+L1000_prot_pair_averages$prot_2 <- as.character(L1000_prot_pair_averages$prot_2)
+
+rsq_dat_in_L1000 <- subset(rsq_dat_steiger_info, rsq_dat_steiger_info$prot_1 %in% L1000_prot_pair_averages$prot_1 & rsq_dat_steiger_info$prot_2 %in% L1000_prot_pair_averages$prot_2)
+
+head(rsq_dat_in_L1000)
+nrow(rsq_dat_in_L1000)
+
+```
+
+We now want to compare the strength of the associations in the rsq data and the L1000 data so put them all into one table
+
+```{r}
+
+rsq_dat_in_L1000$prot1_on_prot2 <- paste0(rsq_dat_in_L1000$prot_1, "_on_", rsq_dat_in_L1000$prot_2)
+L1000_prot_pair_averages$prot1_on_prot2 <- paste0(L1000_prot_pair_averages$prot_1, "_on_", L1000_prot_pair_averages$prot_2)
+
+rsq_and_L1000_dat <- merge(L1000_prot_pair_averages, rsq_dat_in_L1000, by="prot1_on_prot2")
+head(rsq_and_L1000_dat)
 
 ```
 
 
+Now we want to see if the significant steiger pvalue results have a stronger fdr value in the L1000 data
+So we can do a T-test to compare the means of the FDR values between the two groupe (sig steiger pval vs non sig steiger pval)
 
+```{r}
+sig_steiger_pval <- subset(rsq_and_L1000_dat, rsq_and_L1000_dat$steiger_pval < 0.05)
+non_sig_steiger_pval <- subset(rsq_and_L1000_dat, rsq_and_L1000_dat$steiger_pval > 0.05)
+
+t.test(sig_steiger_pval$fdr, non_sig_steiger_pval$fdr)
+```
+
+So there is a small significant difference between the means of the two groups, however the 95% confidence intervals are quite small
+
+Does a significant steiger pvalue mean more likely to be a significant fdr value? 
+
+```{r}
+(prop.table(table(sig_steiger_pval$fdr<0.05)))*100
+
+(prop.table(table(non_sig_steiger_pval$fdr<0.05)))*100
+
+```
+
+Both just under 3% of the fdr values are signifcant in both the sig and non sig stieger pvalue groups
+
+
+So it appears as though having a significant stieger p-value does not seem to have much of an influence on whether the L1000 fdr value is significant
 
 
 ## Does the *Beta* correlate with the Z-score 

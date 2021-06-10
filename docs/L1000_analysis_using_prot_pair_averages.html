@@ -377,34 +377,35 @@ num_out_prot_a</code></pre>
 <pre><code>## [1] 567</code></pre>
 <p>so we only loose 2733 expsure proteins and 567 outcome proteins of the total 380,977 protein pairs but just using the prot-a data This data wasnt extracted from the L1000 data set anyway</p>
 <pre class="r"><code>rsq_dat_steiger_info &lt;- merge(rsq_dat_steiger_info, protein_linker_file, by.x=&quot;id.exposure&quot;, by.y=&quot;protein_number&quot;)
-names(rsq_dat_steiger_info)[7:8] &lt;- c(&quot;Exposure_protein_ID&quot;,&quot;Exposure_protein_name&quot;)
+names(rsq_dat_steiger_info)[8:9] &lt;- c(&quot;Exposure_protein_ID&quot;,&quot;Exposure_protein_name&quot;)
 
 rsq_dat_steiger_info &lt;- merge(rsq_dat_steiger_info, protein_linker_file, by.x=&quot;id.outcome&quot;, by.y=&quot;protein_number&quot;)
-names(rsq_dat_steiger_info)[9:10] &lt;- c(&quot;Outcome_prtein_ID&quot;,&quot;Outcome_protein_name&quot;)
+names(rsq_dat_steiger_info)[10:11] &lt;- c(&quot;Outcome_prtein_ID&quot;,&quot;Outcome_protein_name&quot;)
 
+rsq_dat_steiger_info &lt;- rsq_dat_steiger_info[c(2,1,3:11)]  ## put the exposure column first 
 
 head(rsq_dat_steiger_info)</code></pre>
-<pre><code>##   id.outcome id.exposure       SNP rsq.exposure rsq.outcome steiger_dir
-## 1   prot-a-1 prot-a-1842 rs2228243   0.24195466  0.01315152        TRUE
-## 2   prot-a-1 prot-a-2184 rs2304456   0.24040975  0.04714217        TRUE
-## 3   prot-a-1 prot-a-2889 rs2304456   0.05851737  0.04714217        TRUE
-## 4   prot-a-1 prot-a-3016 rs2228243   0.06800738  0.01315152        TRUE
-## 5   prot-a-1 prot-a-1783 rs2228243   0.20367615  0.01315152        TRUE
-## 6  prot-a-10 prot-a-2243 rs8176743   0.01991011  0.03978018       FALSE
-##   Exposure_protein_ID Exposure_protein_name Outcome_prtein_ID
-## 1        3.056620e-66      MAP2K4.5242.37.3            MAP2K4
-## 2        1.177585e-37     PARP16.7881.244.3            PARP16
-## 3        2.880829e-01        STX7.8274.64.3              STX7
-## 4        7.152374e-10    TMEM87B.13485.20.3           TMEM87B
-## 5        2.488098e-51      LRPPRC.9046.46.3            LRPPRC
-## 6        1.465178e-02       PEAR1.8275.31.3             PEAR1
-##   Outcome_protein_name protein_name.y
-## 1      A1CF.12423.38.3           A1CF
-## 2      A1CF.12423.38.3           A1CF
-## 3      A1CF.12423.38.3           A1CF
-## 4      A1CF.12423.38.3           A1CF
-## 5      A1CF.12423.38.3           A1CF
-## 6        ABO.9253.52.3            ABO</code></pre>
+<pre><code>##   id.exposure id.outcome       SNP rsq.exposure rsq.outcome steiger_dir
+## 1 prot-a-1842   prot-a-1 rs2228243   0.24195466  0.01315152        TRUE
+## 2 prot-a-2184   prot-a-1 rs2304456   0.24040975  0.04714217        TRUE
+## 3 prot-a-2889   prot-a-1 rs2304456   0.05851737  0.04714217        TRUE
+## 4 prot-a-3016   prot-a-1 rs2228243   0.06800738  0.01315152        TRUE
+## 5 prot-a-1783   prot-a-1 rs2228243   0.20367615  0.01315152        TRUE
+## 6 prot-a-2243  prot-a-10 rs8176743   0.01991011  0.03978018       FALSE
+##   steiger_pval Exposure_protein_ID Exposure_protein_name Outcome_prtein_ID
+## 1 3.056620e-66    MAP2K4.5242.37.3                MAP2K4   A1CF.12423.38.3
+## 2 1.177585e-37   PARP16.7881.244.3                PARP16   A1CF.12423.38.3
+## 3 2.880829e-01      STX7.8274.64.3                  STX7   A1CF.12423.38.3
+## 4 7.152374e-10  TMEM87B.13485.20.3               TMEM87B   A1CF.12423.38.3
+## 5 2.488098e-51    LRPPRC.9046.46.3                LRPPRC   A1CF.12423.38.3
+## 6 1.465178e-02     PEAR1.8275.31.3                 PEAR1     ABO.9253.52.3
+##   Outcome_protein_name
+## 1                 A1CF
+## 2                 A1CF
+## 3                 A1CF
+## 4                 A1CF
+## 5                 A1CF
+## 6                  ABO</code></pre>
 <pre class="r"><code>head(L1000_prot_pair_averages)</code></pre>
 <pre><code>##   prot_1 prot_2 num_tests        min          Q1      median        mean
 ## 1 MAP2K4   A1CF        13 -0.6942676 -0.30767131 -0.18289389  0.05553919
@@ -422,6 +423,153 @@ head(rsq_dat_steiger_info)</code></pre>
 ## 6  0.3377429  0.7805317   0.9770166 -1.5405304 0.12343111 0.4940715</code></pre>
 <p>For the R<sup>2</sup> data, the &quot;steiger_dir&quot; column tells us whether the R-squared value is larger for the exposure (TRUE) or the outcome (FALSE).</p>
 <p>In the L1000 data we have the fdr adjusted pvalue to tell us if protein 1 significantly influences protein 2</p>
+<pre class="r"><code>## Convert the rsq data to be the &quot;correct&quot; direction based in the steiger_dir column
+
+rsq_dat_steiger_info$prot_1 &lt;- ifelse(rsq_dat_steiger_info$steiger_dir == &quot;TRUE&quot;, paste0(rsq_dat_steiger_info$Exposure_protein_name), paste0(rsq_dat_steiger_info$Outcome_protein_name))
+rsq_dat_steiger_info$prot_2 &lt;- ifelse(rsq_dat_steiger_info$steiger_dir == &quot;TRUE&quot;, paste0(rsq_dat_steiger_info$Outcome_protein_name), paste0(rsq_dat_steiger_info$Exposure_protein_name))
+
+head(rsq_dat_steiger_info)</code></pre>
+<pre><code>##   id.exposure id.outcome       SNP rsq.exposure rsq.outcome steiger_dir
+## 1 prot-a-1842   prot-a-1 rs2228243   0.24195466  0.01315152        TRUE
+## 2 prot-a-2184   prot-a-1 rs2304456   0.24040975  0.04714217        TRUE
+## 3 prot-a-2889   prot-a-1 rs2304456   0.05851737  0.04714217        TRUE
+## 4 prot-a-3016   prot-a-1 rs2228243   0.06800738  0.01315152        TRUE
+## 5 prot-a-1783   prot-a-1 rs2228243   0.20367615  0.01315152        TRUE
+## 6 prot-a-2243  prot-a-10 rs8176743   0.01991011  0.03978018       FALSE
+##   steiger_pval Exposure_protein_ID Exposure_protein_name Outcome_prtein_ID
+## 1 3.056620e-66    MAP2K4.5242.37.3                MAP2K4   A1CF.12423.38.3
+## 2 1.177585e-37   PARP16.7881.244.3                PARP16   A1CF.12423.38.3
+## 3 2.880829e-01      STX7.8274.64.3                  STX7   A1CF.12423.38.3
+## 4 7.152374e-10  TMEM87B.13485.20.3               TMEM87B   A1CF.12423.38.3
+## 5 2.488098e-51    LRPPRC.9046.46.3                LRPPRC   A1CF.12423.38.3
+## 6 1.465178e-02     PEAR1.8275.31.3                 PEAR1     ABO.9253.52.3
+##   Outcome_protein_name  prot_1 prot_2
+## 1                 A1CF  MAP2K4   A1CF
+## 2                 A1CF  PARP16   A1CF
+## 3                 A1CF    STX7   A1CF
+## 4                 A1CF TMEM87B   A1CF
+## 5                 A1CF  LRPPRC   A1CF
+## 6                  ABO     ABO  PEAR1</code></pre>
+<pre class="r"><code>head(L1000_prot_pair_averages)</code></pre>
+<pre><code>##   prot_1 prot_2 num_tests        min          Q1      median        mean
+## 1 MAP2K4   A1CF        13 -0.6942676 -0.30767131 -0.18289389  0.05553919
+## 2 LRPPRC   A1CF        10 -1.0959874 -0.57881256 -0.25209726 -0.25232022
+## 3   KNG1   A1CF        17 -1.2938634 -0.34926003  0.03797939 -0.08744798
+## 4  LCMT1   A1CF        17 -1.4679012 -0.26024830  0.05413373  0.13523771
+## 5   CD36    ABO         1 -0.8581429 -0.85814285 -0.85814285 -0.85814285
+## 6   JAG1    ABO        11 -1.5405304 -0.09926663  0.18179706  0.02880943
+##           Q3        max pval_mean_z    largest pval_max_z       fdr
+## 1  0.4066875  0.7944757   0.9557089  0.7944757 0.42691856 0.5386202
+## 2  0.2394815  0.4173163   0.8007936 -1.0959874 0.27308427 0.4942613
+## 3  0.4340315  0.7213000   0.9303154 -1.2938634 0.19571260 0.4940715
+## 4  0.6938947  1.6794713   0.8924239  1.6794713 0.09306024 0.4940715
+## 5 -0.8581429 -0.8581429   0.3908136 -0.8581429 0.39081359 0.5217568
+## 6  0.3377429  0.7805317   0.9770166 -1.5405304 0.12343111 0.4940715</code></pre>
+<pre class="r"><code>L1000_prot_pair_averages$prot_1 &lt;- as.character(L1000_prot_pair_averages$prot_1)
+L1000_prot_pair_averages$prot_2 &lt;- as.character(L1000_prot_pair_averages$prot_2)
+
+rsq_dat_in_L1000 &lt;- subset(rsq_dat_steiger_info, rsq_dat_steiger_info$prot_1 %in% L1000_prot_pair_averages$prot_1 &amp; rsq_dat_steiger_info$prot_2 %in% L1000_prot_pair_averages$prot_2)
+
+head(rsq_dat_in_L1000)</code></pre>
+<pre><code>##    id.exposure id.outcome        SNP rsq.exposure rsq.outcome steiger_dir
+## 1  prot-a-1842   prot-a-1  rs2228243   0.24195466 0.013151525        TRUE
+## 5  prot-a-1783   prot-a-1  rs2228243   0.20367615 0.013151525        TRUE
+## 16  prot-a-442  prot-a-10  rs8176693   0.04214656 0.039926554        TRUE
+## 22 prot-a-2978  prot-a-10  rs8176743   0.16602561 0.039780177        TRUE
+## 45 prot-a-2235 prot-a-100      rs704   0.10983683 0.005990592        TRUE
+## 48 prot-a-1292 prot-a-100 rs62143197   0.06328007 0.009759228        TRUE
+##    steiger_pval Exposure_protein_ID Exposure_protein_name Outcome_prtein_ID
+## 1  3.056620e-66    MAP2K4.5242.37.3                MAP2K4   A1CF.12423.38.3
+## 5  2.488098e-51    LRPPRC.9046.46.3                LRPPRC   A1CF.12423.38.3
+## 16 8.164981e-01      CD36.2973.15.2                  CD36     ABO.9253.52.3
+## 22 8.260093e-21      TIE1.2844.53.2                  TIE1     ABO.9253.52.3
+## 45 2.303786e-27      PDK1.5227.60.3                  PDK1 ANGPTL7.6371.50.3
+## 48 1.413435e-10    GTF2I.13609.11.3                 GTF2I ANGPTL7.6371.50.3
+##    Outcome_protein_name prot_1  prot_2
+## 1                  A1CF MAP2K4    A1CF
+## 5                  A1CF LRPPRC    A1CF
+## 16                  ABO   CD36     ABO
+## 22                  ABO   TIE1     ABO
+## 45              ANGPTL7   PDK1 ANGPTL7
+## 48              ANGPTL7  GTF2I ANGPTL7</code></pre>
+<pre class="r"><code>nrow(rsq_dat_in_L1000)</code></pre>
+<pre><code>## [1] 127872</code></pre>
+<p>We now want to compare the strength of the associations in the rsq data and the L1000 data so put them all into one table</p>
+<pre class="r"><code>rsq_dat_in_L1000$prot1_on_prot2 &lt;- paste0(rsq_dat_in_L1000$prot_1, &quot;_on_&quot;, rsq_dat_in_L1000$prot_2)
+L1000_prot_pair_averages$prot1_on_prot2 &lt;- paste0(L1000_prot_pair_averages$prot_1, &quot;_on_&quot;, L1000_prot_pair_averages$prot_2)
+
+rsq_and_L1000_dat &lt;- merge(L1000_prot_pair_averages, rsq_dat_in_L1000, by=&quot;prot1_on_prot2&quot;)
+head(rsq_and_L1000_dat)</code></pre>
+<pre><code>##    prot1_on_prot2 prot_1.x prot_2.x num_tests        min          Q1
+## 1  AARS_on_ACVR1B     AARS   ACVR1B        13 -0.9134892 -0.08821168
+## 2  AARS_on_ADAM12     AARS   ADAM12        13 -0.8892565 -0.24019563
+## 3 AARS_on_ADAMTS5     AARS  ADAMTS5        13 -0.4369245  0.08814126
+## 4 AARS_on_ADCYAP1     AARS  ADCYAP1        13 -0.9197696  0.03871749
+## 5    AARS_on_AGR2     AARS     AGR2        13 -1.7324216 -0.42150512
+## 6  AARS_on_AKR1C1     AARS   AKR1C1        13 -0.6350168 -0.21143188
+##        median        mean          Q3       max pval_mean_z    largest
+## 1  0.13466591  0.04953292  0.27306926 0.8747044   0.9604946 -0.9134892
+## 2 -0.19967768 -0.14565258  0.12241141 0.4323345   0.8841957 -0.8892565
+## 3  0.16610238  0.18891156  0.32383195 0.7196834   0.8501621  0.7196834
+## 4  0.38767111  0.27092875  0.69405037 1.1252919   0.7864458  1.1252919
+## 5 -0.34281301 -0.33235804 -0.03809229 0.2752000   0.7396189 -1.7324216
+## 6  0.03071374  0.05827403  0.20540194 0.9323006   0.9535304  0.9323006
+##   pval_max_z       fdr id.exposure id.outcome        SNP rsq.exposure
+## 1 0.36098533 0.5108092    prot-a-3  prot-a-22 rs62143197   0.01405501
+## 2 0.37386526 0.5150816    prot-a-3  prot-a-26 rs62143197   0.01405501
+## 3 0.47171994 0.5641179    prot-a-3  prot-a-36 rs62143197   0.01405501
+## 4 0.26046534 0.4940715    prot-a-3  prot-a-42 rs62143197   0.01405501
+## 5 0.08319852 0.4940715    prot-a-3  prot-a-58 rs62143197   0.01405501
+## 6 0.35118121 0.5076677    prot-a-3  prot-a-69 rs62143197   0.01405501
+##   rsq.outcome steiger_dir steiger_pval Exposure_protein_ID
+## 1 0.012477577        TRUE    0.7779958     AARS.12340.17.3
+## 2 0.007575101        TRUE    0.1957720     AARS.12340.17.3
+## 3 0.007641903        TRUE    0.2012414     AARS.12340.17.3
+## 4 0.008940505        TRUE    0.3242245     AARS.12340.17.3
+## 5 0.006402231        TRUE    0.1139219     AARS.12340.17.3
+## 6 0.009101456        TRUE    0.3415571     AARS.12340.17.3
+##   Exposure_protein_name Outcome_prtein_ID Outcome_protein_name prot_1.y
+## 1                  AARS  ACVR1B.2806.49.2               ACVR1B     AARS
+## 2                  AARS   ADAM12.4420.7.2               ADAM12     AARS
+## 3                  AARS  ADAMTS5.3168.8.2              ADAMTS5     AARS
+## 4                  AARS ADCYAP1.8285.64.3              ADCYAP1     AARS
+## 5                  AARS     AGR2.4959.2.1                 AGR2     AARS
+## 6                  AARS AKR1C1.12618.50.3               AKR1C1     AARS
+##   prot_2.y
+## 1   ACVR1B
+## 2   ADAM12
+## 3  ADAMTS5
+## 4  ADCYAP1
+## 5     AGR2
+## 6   AKR1C1</code></pre>
+<p>Now we want to see if the significant steiger pvalue results have a stronger fdr value in the L1000 data So we can do a T-test to compare the means of the FDR values between the two groupe (sig steiger pval vs non sig steiger pval)</p>
+<pre class="r"><code>sig_steiger_pval &lt;- subset(rsq_and_L1000_dat, rsq_and_L1000_dat$steiger_pval &lt; 0.05)
+non_sig_steiger_pval &lt;- subset(rsq_and_L1000_dat, rsq_and_L1000_dat$steiger_pval &gt; 0.05)
+
+t.test(sig_steiger_pval$fdr, non_sig_steiger_pval$fdr)</code></pre>
+<pre><code>## 
+##  Welch Two Sample t-test
+## 
+## data:  sig_steiger_pval$fdr and non_sig_steiger_pval$fdr
+## t = -3.8794, df = 49875, p-value = 0.0001048
+## alternative hypothesis: true difference in means is not equal to 0
+## 95 percent confidence interval:
+##  -0.005636033 -0.001852551
+## sample estimates:
+## mean of x mean of y 
+## 0.4972615 0.5010058</code></pre>
+<p>So there is a small significant difference between the means of the two groups, however the 95% confidence intervals are quite small</p>
+<p>Does a significant steiger pvalue mean more likely to be a significant fdr value?</p>
+<pre class="r"><code>(prop.table(table(sig_steiger_pval$fdr&lt;0.05)))*100</code></pre>
+<pre><code>## 
+##    FALSE     TRUE 
+## 97.05813  2.94187</code></pre>
+<pre class="r"><code>(prop.table(table(non_sig_steiger_pval$fdr&lt;0.05)))*100</code></pre>
+<pre><code>## 
+##     FALSE      TRUE 
+## 97.412918  2.587082</code></pre>
+<p>Both just under 3% of the fdr values are signifcant in both the sig and non sig stieger pvalue groups</p>
+<p>So it appears as though having a significant stieger p-value does not seem to have much of an influence on whether the L1000 fdr value is significant</p>
 </div>
 <div id="does-the-beta-correlate-with-the-z-score" class="section level2">
 <h2>Does the <em>Beta</em> correlate with the Z-score</h2>
