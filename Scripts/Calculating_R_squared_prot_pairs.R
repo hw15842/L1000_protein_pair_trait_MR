@@ -14,6 +14,7 @@ library(dplyr)
 library(TwoSampleMR)
 library(plyr)
 library(data.table)
+library(ieugwasr)
 
 setwd(paste0(results_location)) ### saving these to the "data" folder in the git hub repository to use with the rmarkdown script 
 
@@ -143,13 +144,6 @@ rsq_dat <- lapply(1:nrow(df_split[[df_num]]), extract_dat_func, df_num=df_split[
 save(rsq_dat, file=paste0("rsq_dat_", df_num, ".rdata"))
 rsq_dat_table <- ldply(rsq_dat, data.table)
 save(rsq_dat_table, file=paste0("rsq_dat_table_", df_num, ".rdata"))
-
-
-
-
-
-
-
 
 
 
