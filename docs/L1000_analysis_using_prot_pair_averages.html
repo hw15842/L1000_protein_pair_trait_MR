@@ -544,6 +544,214 @@ binom.test(x=nrow(subset(L1000_fwd_and_rev_pairs_rsq_dat, L1000_fwd_and_rev_pair
 <h2>How often do we get a significant MR and a significant L1000 protein pair</h2>
 <p>How often are we finding the a significant MR is also significant in the L1000 data.</p>
 </div>
+<div id="does-the-l1000-hep-us-to-determine-if-we-shold-be-removing-the-mass-pleiotropy-pqtls" class="section level2">
+<h2>does the L1000 hep us to determine if we shold be Removing the mass pleiotropy pQTls</h2>
+<p>We need to consider and then remove the protein interactions that are due to a mass pleiotropy pQTL as we have determined that these interactions are likely due to biases in the data rather than true biological associations.</p>
+<p>We will then also need to change the multiple testing to adjust for this removal of protein pairs</p>
+<p>However I also want to just do some analysis to evaluate if the L1000 data picks up the mass pleiotropy protein pairs, if not adds further credibility to our theory that they are not true biological associations.</p>
+<p>For this section we will use data that has been created above, then after we have removed the mass pleiotropy pQTL associations we will re-run the above analysis in a different order that makes more sense for the flow of the paper</p>
+<pre class="r"><code>mass_pleio_snps &lt;- read.table(&quot;/Users/hw15842/Documents/PhD_work/protein_interactions/new_results/mass_pleio_snps.txt&quot;)
+
+rsq_L1000_mass_pleio_assocs &lt;- subset(rsq_and_L1000_dat, rsq_and_L1000_dat$SNP %in% mass_pleio_snps$V1)
+
+rsq_L1000_non_mass_pleio_assocs &lt;- subset(rsq_and_L1000_dat, !rsq_and_L1000_dat$SNP %in% mass_pleio_snps$V1)
+
+(prop.table(table(rsq_L1000_mass_pleio_assocs$fdr&lt;0.05)))*100</code></pre>
+<pre><code>## 
+##     FALSE      TRUE 
+## 97.137584  2.862416</code></pre>
+<pre class="r"><code>(prop.table(table(rsq_L1000_non_mass_pleio_assocs$fdr&lt;0.05)))*100</code></pre>
+<pre><code>## 
+##     FALSE      TRUE 
+## 97.410777  2.589223</code></pre>
+<p>So the percentages of fdr values less than 0.05 are basically exactly the same in the mass pleiotopy and non-mass pleiotropy subsets of the protein pairs</p>
+<p>Doesnt really support our theory that the mass pleio associations are less likely to be biological..... May need to think about this again but for now going to continue with the analysis by removing the mass pleiotropy pQTL associations</p>
+</div>
+</div>
+<div id="removing-all-of-the-previous-data-and-re-starting-with-no-mass-pleio-snps-and-running-in-more-coherent-order" class="section level1">
+<h1>Removing all of the previous data and re starting with no mass pleio snps and running in more coherent order</h1>
+<pre class="r"><code>rm(list = ls())
+
+ls()</code></pre>
+<pre><code>## character(0)</code></pre>
+<p>/</p>
+<p>//</p>
+<p>///</p>
+<p>////</p>
+<p>/////</p>
+<p>/////</p>
+<p>///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////</p>
+<p>/////</p>
+<p>////</p>
+<p>///</p>
+<p>//</p>
+<p>/</p>
+</div>
+<div id="starting-again---no-mass-pleio-pqtls" class="section level1">
+<h1>Starting again - no mass pleio pQTLs</h1>
+<div id="three-questions-to-answer" class="section level2">
+<h2>Three questions to answer</h2>
+<ol style="list-style-type: decimal">
+<li>Can the MR results predict the same protein pairs as the L1000 data</li>
+<li>Can the MR results predict the same protein orientation as the L1000 data</li>
+<li>Can the MR results predict the same direction of effect as the L1000 data</li>
+</ol>
+<p>First we need to get the data and remove the mass pleio pQTLs (doing this again as may remove the data from above)</p>
+<pre class="r"><code># Load in the L1000 results
+githubURL &lt;- &quot;https://github.com/hw15842/L1000_protein_pair_trait_MR/blob/master/Data/L1000_prot_pair_averages.rdata?raw=true&quot;
+load(url(githubURL))
+
+# determine absolute largest z-score, create a pval and fdr corrected pval for it
+L1000_prot_pair_averages$largest &lt;- ifelse(abs(L1000_prot_pair_averages$min) &gt; abs(L1000_prot_pair_averages$max), L1000_prot_pair_averages$min, L1000_prot_pair_averages$max)
+L1000_prot_pair_averages$pval_max_z &lt;- (pnorm(abs(L1000_prot_pair_averages$largest), lower.tail=F))*2
+L1000_prot_pair_averages$fdr &lt;- p.adjust(L1000_prot_pair_averages$pval_max_z, &quot;fdr&quot;)
+
+# load in the rsq_dat
+load(&quot;/Users/hw15842/Documents/PhD_work/Chapter4_L1000_MR_triplicates_analyses/L1000_protein_pair_trait_MR/Data/rsq_dat.rdata&quot;)
+## When creating the rsq_dat file, some of the outcome proteins were in the dataset twice because of there being two seperate pQTLs for them
+## We don't need the pQTLs, it just means some have been run twice, so we can now just keep the unique rows
+rsq_dat &lt;- unique(rsq_dat)
+
+# load in the mass pleiotropy pQTL file 
+mass_pleio_snps &lt;- read.table(&quot;/Users/hw15842/Documents/PhD_work/protein_interactions/new_results/mass_pleio_snps.txt&quot;)
+
+
+# remove the mass pleiotropy pQTLs from the rsq_dat file 
+rsq_dat &lt;- subset(rsq_dat, rsq_dat$SNP %in% mass_pleio_snps$V1)
+
+
+# create data frame with jsut the steiger info 
+rsq_dat_steiger_info &lt;- subset(rsq_dat, select=c(id.exposure, id.outcome, SNP, rsq.exposure, rsq.outcome, steiger_dir, steiger_pval))
+
+# load in the protein linker file for the prot-a protein names 
+load(&quot;/Users/hw15842/Documents/PhD_work/protein_interactions/Data/protein_linker_file.rdata&quot;)
+
+# Add the protein names to the rsq steiger nmp data frame
+
+rsq_dat_steiger_info &lt;- merge(rsq_dat_steiger_info, protein_linker_file, by.x=&quot;id.exposure&quot;, by.y=&quot;protein_number&quot;)
+names(rsq_dat_steiger_info)[8:9] &lt;- c(&quot;Exposure_protein_ID&quot;,&quot;Exposure_protein_name&quot;)
+
+rsq_dat_steiger_info &lt;- merge(rsq_dat_steiger_info, protein_linker_file, by.x=&quot;id.outcome&quot;, by.y=&quot;protein_number&quot;)
+names(rsq_dat_steiger_info)[10:11] &lt;- c(&quot;Outcome_prtein_ID&quot;,&quot;Outcome_protein_name&quot;)
+
+rsq_dat_steiger_info &lt;- rsq_dat_steiger_info[c(2,1,3:11)]  ## put the exposure column first 
+
+
+# We now have the rsq data with the mass pleio pQTLs removed
+# and the L1000 data with the pvalue and fdrs added (this still contains protein pairs that may be due to mass pleio pQTLs at the moment, will remove when we merge with rsq data next)</code></pre>
+</div>
+<div id="can-the-mr-results-predict-the-same-protein-pairs-as-the-l1000-data" class="section level2">
+<h2>1) Can the MR results predict the same protein pairs as the L1000 data</h2>
+<p>We want to determine if a significant MR result can determine if the protein pair is significant in the L1000 data</p>
+<p>We will do this by determining how often a significant MR is significant in the L1000 data and then compare that to some randomly iterated protein pairs</p>
+</div>
+<div id="can-the-mr-results-predict-the-same-protein-orientation-as-the-l1000-data" class="section level2">
+<h2>2) Can the MR results predict the same protein orientation as the L1000 data</h2>
+<p>We will assess this in two ways</p>
+<ul>
+<li>Does a smaller steiger pvalue correlate with a smaller FDR value</li>
+<li>Does the R<sup>2</sup> orientation match the L1000 orientation (for the L1000 data that has data about both protein orientations)</li>
+</ul>
+<div id="does-a-smaller-steiger-pvalue-correlate-with-a-smaller-fdr-value" class="section level4">
+<h4>Does a smaller steiger pvalue correlate with a smaller FDR value</h4>
+<pre class="r"><code>## Convert the rsq data to be the &quot;correct&quot; direction based in the steiger_dir column
+
+rsq_dat_steiger_info$prot_1 &lt;- ifelse(rsq_dat_steiger_info$steiger_dir == &quot;TRUE&quot;, paste0(rsq_dat_steiger_info$Exposure_protein_name), paste0(rsq_dat_steiger_info$Outcome_protein_name))
+rsq_dat_steiger_info$prot_2 &lt;- ifelse(rsq_dat_steiger_info$steiger_dir == &quot;TRUE&quot;, paste0(rsq_dat_steiger_info$Outcome_protein_name), paste0(rsq_dat_steiger_info$Exposure_protein_name))
+
+# Make the L1000 prot columns into charactor vectors
+
+L1000_prot_pair_averages$prot_1 &lt;- as.character(L1000_prot_pair_averages$prot_1)
+L1000_prot_pair_averages$prot_2 &lt;- as.character(L1000_prot_pair_averages$prot_2)
+
+# Combine the two data frames - there are no mass pleio prot pairs in the rsq data so this next step wont have them in either 
+
+rsq_dat_steiger_info$prot1_on_prot2 &lt;- paste0(rsq_dat_steiger_info$prot_1, &quot;_on_&quot;, rsq_dat_steiger_info$prot_2)
+L1000_prot_pair_averages$prot1_on_prot2 &lt;- paste0(L1000_prot_pair_averages$prot_1, &quot;_on_&quot;, L1000_prot_pair_averages$prot_2)
+
+rsq_and_L1000_dat &lt;- merge(L1000_prot_pair_averages, rsq_dat_steiger_info, by=&quot;prot1_on_prot2&quot;)
+
+
+## Re-calculate a new FDR corrected pvalue for this data as we have now removed the mass pleio pairs 
+
+rsq_and_L1000_dat$fdr_new &lt;- p.adjust(rsq_and_L1000_dat$pval_max_z, &quot;fdr&quot;)
+
+
+# split into sig and non-sig steiger pvals and see if sig difference in the new fdr values between the two groups 
+sig_steiger_pval &lt;- subset(rsq_and_L1000_dat, rsq_and_L1000_dat$steiger_pval &lt; 0.05)
+non_sig_steiger_pval &lt;- subset(rsq_and_L1000_dat, rsq_and_L1000_dat$steiger_pval &gt; 0.05)
+
+t.test(sig_steiger_pval$fdr_new, non_sig_steiger_pval$fdr_new)</code></pre>
+<pre><code>## 
+##  Welch Two Sample t-test
+## 
+## data:  sig_steiger_pval$fdr_new and non_sig_steiger_pval$fdr_new
+## t = -4.1845, df = 48837, p-value = 2.863e-05
+## alternative hypothesis: true difference in means is not equal to 0
+## 95 percent confidence interval:
+##  -0.006087764 -0.002203934
+## sample estimates:
+## mean of x mean of y 
+## 0.4776325 0.4817784</code></pre>
+<p>So there is a small significant difference between the two groups with the sig steiger pvals having a slightly greater chance of getting a lower FDR pval than the non-sig steiger pvals</p>
+<p>Have a look at the percentages and create an odds ratio for this data</p>
+<p>Odds ratio: a is the number of times both A and B are present, b is the number of times A is present, but B is absent, c is the number of times A is absent, but B is present, and d is the number of times both A and B are negative.</p>
+<pre class="r"><code># percentages of the sig and nonsig steiger pvals that have a significant FDR with the new fdr value
+(prop.table(table(sig_steiger_pval$fdr_new&lt;0.05)))*100</code></pre>
+<pre><code>## 
+##     FALSE      TRUE 
+## 96.951346  3.048654</code></pre>
+<pre class="r"><code>(prop.table(table(non_sig_steiger_pval$fdr_new&lt;0.05)))*100</code></pre>
+<pre><code>## 
+##    FALSE     TRUE 
+## 97.32284  2.67716</code></pre>
+<pre class="r"><code># Calculate the odds ratio
+library(epitools)
+
+a &lt;- as.numeric(table(sig_steiger_pval$fdr_new&lt;0.05)[2]) # sig steiger and sig FDR
+b &lt;- as.numeric(table(sig_steiger_pval$fdr_new&lt;0.05)[1]) # sig steiger and non-sig FDR
+c &lt;- as.numeric(table(non_sig_steiger_pval$fdr_new&lt;0.05)[2]) # non-sig steiger and sig FDR
+d &lt;- as.numeric(table(non_sig_steiger_pval$fdr_new&lt;0.05)[1]) # non-sig steiger and non-sig FDR
+
+
+odds_ratio &lt;- (a*d)/(b*c)
+odds_ratio</code></pre>
+<pre><code>## [1] 1.143128</code></pre>
+<pre class="r"><code>oddsratio.wald(matrix(c(a,b,c,d),nrow = 2, ncol = 2))</code></pre>
+<pre><code>## $data
+##           Outcome
+## Predictor  Disease1 Disease2  Total
+##   Exposed1     2945      779   3724
+##   Exposed2    93655    28319 121974
+##   Total       96600    29098 125698
+## 
+## $measure
+##           odds ratio with 95% C.I.
+## Predictor  estimate    lower    upper
+##   Exposed1 1.000000       NA       NA
+##   Exposed2 1.143128 1.055159 1.238431
+## 
+## $p.value
+##           two-sided
+## Predictor    midp.exact fisher.exact  chi.square
+##   Exposed1           NA           NA          NA
+##   Exposed2 0.0009336456 0.0009875025 0.001051365
+## 
+## $correction
+## [1] FALSE
+## 
+## attr(,&quot;method&quot;)
+## [1] &quot;Unconditional MLE &amp; normal approximation (Wald) CI&quot;</code></pre>
+<p>So the odds ratio is 1.14 with a 95% CI of 1.06 to 1.24</p>
+<p>Which means that a significant steiger pvalue, increases your chances of getting a significant FDR value by 1.14%</p>
+</div>
+<div id="does-the-r2-orientation-match-the-l1000-orientation" class="section level4">
+<h4>Does the R<sup>2</sup> orientation match the L1000 orientation</h4>
+</div>
+</div>
+<div id="can-the-mr-results-predict-the-same-direction-of-effect-as-the-l1000-data" class="section level2">
+<h2>3) Can the MR results predict the same direction of effect as the L1000 data</h2>
+</div>
 </div>
 
 
