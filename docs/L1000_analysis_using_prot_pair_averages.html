@@ -621,7 +621,7 @@ rsq_dat &lt;- subset(rsq_dat, rsq_dat$SNP %in% mass_pleio_snps$V1)
 
 
 # create data frame with jsut the steiger info 
-rsq_dat_steiger_info &lt;- subset(rsq_dat, select=c(id.exposure, id.outcome, SNP, rsq.exposure, rsq.outcome, steiger_dir, steiger_pval))
+rsq_dat_steiger_info &lt;- subset(rsq_dat, select=c(id.exposure, id.outcome, SNP, rsq.exposure, rsq.outcome, steiger_dir, steiger_pval, beta.exposure, beta.outcome))
 
 # load in the protein linker file for the prot-a protein names 
 load(&quot;/Users/hw15842/Documents/PhD_work/protein_interactions/Data/protein_linker_file.rdata&quot;)
@@ -629,12 +629,12 @@ load(&quot;/Users/hw15842/Documents/PhD_work/protein_interactions/Data/protein_l
 # Add the protein names to the rsq steiger nmp data frame
 
 rsq_dat_steiger_info &lt;- merge(rsq_dat_steiger_info, protein_linker_file, by.x=&quot;id.exposure&quot;, by.y=&quot;protein_number&quot;)
-names(rsq_dat_steiger_info)[8:9] &lt;- c(&quot;Exposure_protein_ID&quot;,&quot;Exposure_protein_name&quot;)
+names(rsq_dat_steiger_info)[10:11] &lt;- c(&quot;Exposure_protein_ID&quot;,&quot;Exposure_protein_name&quot;)
 
 rsq_dat_steiger_info &lt;- merge(rsq_dat_steiger_info, protein_linker_file, by.x=&quot;id.outcome&quot;, by.y=&quot;protein_number&quot;)
-names(rsq_dat_steiger_info)[10:11] &lt;- c(&quot;Outcome_prtein_ID&quot;,&quot;Outcome_protein_name&quot;)
+names(rsq_dat_steiger_info)[12:13] &lt;- c(&quot;Outcome_protein_ID&quot;,&quot;Outcome_protein_name&quot;)
 
-rsq_dat_steiger_info &lt;- rsq_dat_steiger_info[c(2,1,3:11)]  ## put the exposure column first 
+rsq_dat_steiger_info &lt;- rsq_dat_steiger_info[c(2,1,3:13)]  ## put the exposure column first 
 
 
 # We now have the rsq data with the mass pleio pQTLs removed
@@ -658,6 +658,11 @@ rsq_dat_steiger_info &lt;- rsq_dat_steiger_info[c(2,1,3:11)]  ## put the exposur
 
 rsq_dat_steiger_info$prot_1 &lt;- ifelse(rsq_dat_steiger_info$steiger_dir == &quot;TRUE&quot;, paste0(rsq_dat_steiger_info$Exposure_protein_name), paste0(rsq_dat_steiger_info$Outcome_protein_name))
 rsq_dat_steiger_info$prot_2 &lt;- ifelse(rsq_dat_steiger_info$steiger_dir == &quot;TRUE&quot;, paste0(rsq_dat_steiger_info$Outcome_protein_name), paste0(rsq_dat_steiger_info$Exposure_protein_name))
+
+## Also add in the beta values for the new orientation as well
+
+rsq_dat_steiger_info$prot_1_beta &lt;- ifelse(rsq_dat_steiger_info$steiger_dir == &quot;TRUE&quot;, paste0(rsq_dat_steiger_info$beta.exposure), paste0(rsq_dat_steiger_info$beta.outcome))
+rsq_dat_steiger_info$prot_2_beta &lt;- ifelse(rsq_dat_steiger_info$steiger_dir == &quot;TRUE&quot;, paste0(rsq_dat_steiger_info$beta.outcome), paste0(rsq_dat_steiger_info$beta.exposure))
 
 # Make the L1000 prot columns into charactor vectors
 
@@ -743,14 +748,48 @@ odds_ratio</code></pre>
 ## attr(,&quot;method&quot;)
 ## [1] &quot;Unconditional MLE &amp; normal approximation (Wald) CI&quot;</code></pre>
 <p>So the odds ratio is 1.14 with a 95% CI of 1.06 to 1.24</p>
-<p>Which means that a significant steiger pvalue, increases your chances of getting a significant FDR value by 1.14%</p>
+<p>Which means that a significant steiger pvalue, increases your chances of getting a significant FDR value by 1.14% and the 95% CI doesnt cross the zero threshold</p>
 </div>
 <div id="does-the-r2-orientation-match-the-l1000-orientation" class="section level4">
 <h4>Does the R<sup>2</sup> orientation match the L1000 orientation</h4>
+<p>For the L1000 data that has data for protein 1 on protein 2 and for the reverse orientation, which orientation has the smallest fdr value and does the R-squared data predict the same direction?</p>
+<p>To assess this we will perform a binomial test</p>
+<ul>
+<li>Number of trials = number of L1000 protein pairs that have a fwd and rev</li>
+<li>Probability of success = 0.5 (i.e. 50%)</li>
+<li>Number of times correct = number of times that the steiger direction same as the L1000 direction</li>
+</ul>
+<pre class="r"><code># extract just the forward and reverse pairs from the merged rsq/L1000 dataset
+
+L1000_fwd_and_rev_pairs_rsq_dat &lt;- subset(rsq_and_L1000_dat, rsq_and_L1000_dat$prot_1.x %in% rsq_and_L1000_dat$prot_2.x &amp; rsq_and_L1000_dat$prot_2.x %in% rsq_and_L1000_dat$prot_1.x)
+
+
+
+
+
+# L1000_fwd_and_rev_pairs_rsq_dat$prot2_on_prot1 &lt;- paste0(L1000_fwd_and_rev_pairs_rsq_dat$prot_2.x, &quot;_on_&quot;, L1000_fwd_and_rev_pairs_rsq_dat$prot_1.x)
+
+
+
+
+
+
+
+## now to run the binomial test
+
+# binom.test(x=    , n=nrow(L1000_fwd_and_rev_pairs_rsq_dat), p=0.5)</code></pre>
 </div>
 </div>
 <div id="can-the-mr-results-predict-the-same-direction-of-effect-as-the-l1000-data" class="section level2">
 <h2>3) Can the MR results predict the same direction of effect as the L1000 data</h2>
+<p>We have the <em>beta</em> values for the MR of the protein pairs - this tells us whether protein 1 up regulates or down regulates protein 2</p>
+<p>The Z-scores have a sign which tell us whether protein 1 up reulgates (+) or down regulates (-) protein 2</p>
+<p>(we have already accounted for the two different pertubagen types by multiplying the shRNA z-scores by -1)</p>
+<p>Does the direction of the <em>beta</em> correlate with the direction of the Z-score</p>
+<p>Does the magnitude of the <em>beta</em> correlate with the magnitude of the Z-score</p>
+<pre class="r"><code>## Calculate the beta of prot 1 on prot 2 
+
+rsq_and_L1000_dat$p1_p2_beta &lt;- as.numeric(rsq_and_L1000_dat$prot_2_beta) / as.numeric(rsq_and_L1000_dat$prot_1_beta)</code></pre>
 </div>
 </div>
 

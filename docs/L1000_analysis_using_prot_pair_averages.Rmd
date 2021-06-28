@@ -431,11 +431,11 @@ mass_pleio_snps <- read.table("/Users/hw15842/Documents/PhD_work/protein_interac
 
 
 # remove the mass pleiotropy pQTLs from the rsq_dat file 
-rsq_dat <- subset(rsq_dat, rsq_dat$SNP %in% mass_pleio_snps$V1)
+rsq_dat <- subset(rsq_dat, ! rsq_dat$SNP %in% mass_pleio_snps$V1)
 
 
 # create data frame with jsut the steiger info 
-rsq_dat_steiger_info <- subset(rsq_dat, select=c(id.exposure, id.outcome, SNP, rsq.exposure, rsq.outcome, steiger_dir, steiger_pval))
+rsq_dat_steiger_info <- subset(rsq_dat, select=c(id.exposure, id.outcome, SNP, rsq.exposure, rsq.outcome, steiger_dir, steiger_pval, beta.exposure, beta.outcome, se.exposure, se.outcome))
 
 # load in the protein linker file for the prot-a protein names 
 load("/Users/hw15842/Documents/PhD_work/protein_interactions/Data/protein_linker_file.rdata")
@@ -443,12 +443,12 @@ load("/Users/hw15842/Documents/PhD_work/protein_interactions/Data/protein_linker
 # Add the protein names to the rsq steiger nmp data frame
 
 rsq_dat_steiger_info <- merge(rsq_dat_steiger_info, protein_linker_file, by.x="id.exposure", by.y="protein_number")
-names(rsq_dat_steiger_info)[8:9] <- c("Exposure_protein_ID","Exposure_protein_name")
+names(rsq_dat_steiger_info)[12:13] <- c("Exposure_protein_ID","Exposure_protein_name")
 
 rsq_dat_steiger_info <- merge(rsq_dat_steiger_info, protein_linker_file, by.x="id.outcome", by.y="protein_number")
-names(rsq_dat_steiger_info)[10:11] <- c("Outcome_prtein_ID","Outcome_protein_name")
+names(rsq_dat_steiger_info)[14:15] <- c("Outcome_protein_ID","Outcome_protein_name")
 
-rsq_dat_steiger_info <- rsq_dat_steiger_info[c(2,1,3:11)]  ## put the exposure column first 
+rsq_dat_steiger_info <- rsq_dat_steiger_info[c(2,1,3:15)]  ## put the exposure column first 
 
 
 # We now have the rsq data with the mass pleio pQTLs removed
@@ -464,7 +464,9 @@ We want to determine if a significant MR result can determine if the protein pai
 
 We will do this by determining how often a significant MR is significant in the L1000 data and then compare that to some randomly iterated protein pairs
 
+```{r}
 
+```
 
 
 
@@ -485,6 +487,11 @@ We will assess this in two ways
 
 rsq_dat_steiger_info$prot_1 <- ifelse(rsq_dat_steiger_info$steiger_dir == "TRUE", paste0(rsq_dat_steiger_info$Exposure_protein_name), paste0(rsq_dat_steiger_info$Outcome_protein_name))
 rsq_dat_steiger_info$prot_2 <- ifelse(rsq_dat_steiger_info$steiger_dir == "TRUE", paste0(rsq_dat_steiger_info$Outcome_protein_name), paste0(rsq_dat_steiger_info$Exposure_protein_name))
+
+## Also add in the beta values for the new orientation as well
+
+rsq_dat_steiger_info$prot_1_beta <- ifelse(rsq_dat_steiger_info$steiger_dir == "TRUE", paste0(rsq_dat_steiger_info$beta.exposure), paste0(rsq_dat_steiger_info$beta.outcome))
+rsq_dat_steiger_info$prot_2_beta <- ifelse(rsq_dat_steiger_info$steiger_dir == "TRUE", paste0(rsq_dat_steiger_info$beta.outcome), paste0(rsq_dat_steiger_info$beta.exposure))
 
 # Make the L1000 prot columns into charactor vectors
 
@@ -546,28 +553,103 @@ oddsratio.wald(matrix(c(a,b,c,d),nrow = 2, ncol = 2))
 
 ```
 
-So the odds ratio is 1.14 with a 95% CI of 1.06  to 1.24
+So the odds ratio is 0.68 with a 95% CI of 0.35  to 1.33
 
-Which means that a significant steiger pvalue, increases your chances of getting a significant FDR value by 1.14%
+Which means that a significant steiger pvalue, decreases your chances of getting a significant FDR value by 0.68% and the 95% CI  crosses the zero threshold 
+
 
 #### Does the R^2^ orientation match the L1000 orientation
 
+For the L1000 data that has data for protein 1 on protein 2 and for the reverse orientation, which orientation has the smallest fdr value and does the R-squared data predict the same direction?
+
+To assess this we will perform a binomial test 
+
+
+* Number of trials = number of L1000 protein pairs that have a fwd and rev
+* Probability of success = 0.5 (i.e. 50%)
+* Number of times correct = number of times that the steiger direction same as the L1000 direction
+
+
 ```{r}
+# Remove the duplicated p1 on p2 rows 
+# we have some protein names that are the same for different protein numbers 
+p1_same_p2 <- subset(rsq_dat_steiger_info, rsq_dat_steiger_info$prot_1 == rsq_dat_steiger_info$prot_2)
+nrow(p1_same_p2)
+library(ieugwasr)
+p1_same_p2_gwasinfo_exp <- gwasinfo(p1_same_p2$id.exposure)
+p1_same_p2_gwasinfo_out <- gwasinfo(p1_same_p2$id.outcome)
+cbind(p1_same_p2_gwasinfo_exp[,1:2], p1_same_p2_gwasinfo_out[,1:2])
+names(p1_same_p2_gwasinfo_both) <- c("id.exp", "trait.exp", "id.out", "trait.out")
+p1_same_p2_gwasinfo_both$same_trait_name <- ifelse(p1_same_p2_gwasinfo_both$trait.exp == p1_same_p2_gwasinfo_both$trait.out, "YES", "NO")
+table(p1_same_p2_gwasinfo_both$same_trait_name)
+# So majority of them have the same actual trait name even though they are slightly different GWAS and the ones that vary are only very slightly different 
+# "Coagulation Factor X"" vs "Coagulation factor Xa"
+# "Vascular endothelial growth factor A, isoform 121" vs "Vascular endothelial growth factor A"
+# "Ck-beta-8-1" vs "C-C motif chemokine 23" - this one is more different  but looking at gene cards https://www.genecards.org/cgi-bin/carddisp.pl?gene=CCL23 they are aliases 
+
+
+# remove the one with the 
+
+# create two datasets - one with the correct (forward) orientaion (based on the rsq values) and one with the reverse orientation 
+
+fwd_rsq_df <- rsq_dat_steiger_info[!duplicated(rsq_dat_steiger_info[,c("prot1_on_prot2")])]
+
+                     dat[!duplicated(dat[,c('id','id2')]),]
+
+rev_rsq_df <- rsq_dat_steiger_info
+rev_rsq_df$prot2_on_prot1 <- paste0(rev_rsq_df$prot_2, "_on_", rev_rsq_df$prot_1)
+rev_rsq_df$prot1_on_prot2 <- NULL
+
+fwd_rsq_df$alphabet_direction <- ifelse( fwd_rsq_df$prot_1 < fwd_rsq_df$prot_2, paste0(fwd_rsq_df$prot_1 ,"_on_", fwd_rsq_df$prot_2), paste0(fwd_rsq_df$prot_2 ,"_on_", fwd_rsq_df$prot_1))
+
+rev_rsq_df$alphabet_direction <- ifelse( rev_rsq_df$prot_1 < rev_rsq_df$prot_2, paste0(rev_rsq_df$prot_1 ,"_on_", rev_rsq_df$prot_2), paste0(rev_rsq_df$prot_2 ,"_on_", rev_rsq_df$prot_1))
+
+
+# Add in the L1000 data based on the fwd and rev orientations 
+
+fwd_rsq_df <- merge(fwd_rsq_df, L1000_prot_pair_averages, by="prot1_on_prot2")
+rev_rsq_df <- merge(rev_rsq_df, L1000_prot_pair_averages, by.x="prot2_on_prot1", by.y = "prot1_on_prot2")
+
+# Just keep the columns we need 
+fwd_rsq_df <- subset(fwd_rsq_df, select=c(alphabet_direction, prot1_on_prot2, steiger_pval, fdr))
+rev_rsq_df <- subset(rev_rsq_df, select=c(alphabet_direction, prot2_on_prot1, steiger_pval, fdr))
+
+colnames(fwd_rsq_df)[2:4] <- paste("FWD", colnames(fwd_rsq_df)[2:4], sep = "_")
+colnames(rev_rsq_df)[2:4] <- paste("REV", colnames(rev_rsq_df)[2:4], sep = "_")
+
+
+both_fwd_rev <- merge(fwd_rsq_df, rev_rsq_df, by="alphabet_direction")
+
+## now to run the binomial test
+
+# binom.test(x=    , n=nrow(L1000_fwd_and_rev_pairs_rsq_dat), p=0.5)
 
 ```
 
 
 
 
-
-```{r}
-
-```
 
 
 
 ## 3) Can the MR results predict the same direction of effect as the L1000 data 
 
+We have the *beta* values for the MR of the protein pairs - this tells us whether protein 1 up regulates or down regulates protein 2
+
+The Z-scores have a sign which tell us whether protein 1 up reulgates (+) or down regulates (-) protein 2 
+
+(we have already accounted for the two different pertubagen types by multiplying the shRNA z-scores by -1)
+
+Does the direction of the *beta* correlate with the direction of the Z-score 
+
+Does the magnitude of the *beta* correlate with the magnitude of the Z-score 
+
 ```{r}
+## Calculate the beta of prot 1 on prot 2 
+
+rsq_and_L1000_dat$p1_p2_beta <- as.numeric(rsq_and_L1000_dat$prot_2_beta) / as.numeric(rsq_and_L1000_dat$prot_1_beta)
+
+
+
 
 ```
