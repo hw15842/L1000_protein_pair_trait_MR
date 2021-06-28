@@ -8,11 +8,11 @@
 # has to be in R version 4
 
 args  <-  commandArgs(trailingOnly=TRUE)
-results_location <- toString(args[1])
-data_location <- toString(args[2])
+data_location <- toString(args[1])
 
 
-setwd(paste0(results_location))
+
+setwd(paste0(data_location))
 
 library("cmapR")
 library("data.table")
