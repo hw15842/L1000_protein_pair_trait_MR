@@ -258,7 +258,7 @@ colnames(prot_pairs_l1000_results) <- c("prot_1", "prot_2", "sig_info","Z")
 
 TOTAL_prot_pairs_l1000_results <- prot_pairs_l1000_results
 
-# save(datalist, file="prot_pairs_l1000_list_of_dataframes.rdata")
+save(datalist, file="TOTAL_prot_pairs_l1000_list_of_dataframes.rdata")
 
 save(TOTAL_prot_pairs_l1000_results, file="TOTAL_prot_pairs_l1000_results.rdata")
 
