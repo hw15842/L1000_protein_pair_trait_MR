@@ -3,6 +3,12 @@
 ## splitting_L1000_data_by_peturbagen.R ##
 
 
+library("data.table")
+library("dplyr")
+library("plyr")
+
+
+
 prot_pairs_list_dfs <- get(load("/mnt/storage/scratch/hw15842/L1000/Results/prot_pairs_l1000_list_of_dataframes.rdata"))
 
 
