@@ -1,0 +1,493 @@
+---
+title: "L1000_prot_pairs_analysis_for_paper"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Running the interogation of the L1000 data and seeing if enriched for our protein pairs
+
+Initial analysis done in "L1000_analysis_using_prot_pair_averages" Rmarkdwon file
+
+Here just keeping the analyses that are going into the chapter and making it clearer for publication purposes 
+
+
+# Replication of prot pairs in L1000
+
+1. Can the MR results predict the same protein pairs as the L1000 data 
+2. Can the MR results predict the same protein orientation as the L1000 data 
+3. Can the MR results predict the same direction of effect as the L1000 data 
+
+
+We will look at this in both mass pleiotropy and non-mass pleiotropy protein pairs 
+
+Load in the L1000 data and rsq_dat 
+Then calculate the abs max z score and its pval and fdr corrected pval for L1000
+Then calculate the steiger info for the rsq_dat 
+
+```{r}
+# Load in the L1000 results
+githubURL <- "https://github.com/hw15842/L1000_protein_pair_trait_MR/blob/master/Data/L1000_prot_pair_averages.rdata?raw=true"
+load(url(githubURL))
+
+# determine absolute largest z-score, create a pval and fdr corrected pval for it
+L1000_prot_pair_averages$largest <- ifelse(abs(L1000_prot_pair_averages$min) > abs(L1000_prot_pair_averages$max), L1000_prot_pair_averages$min, L1000_prot_pair_averages$max)
+L1000_prot_pair_averages$pval_max_z <- (pnorm(abs(L1000_prot_pair_averages$largest), lower.tail=F))*2
+L1000_prot_pair_averages$fdr <- p.adjust(L1000_prot_pair_averages$pval_max_z, "fdr")
+
+# load in the rsq_dat
+load("/Users/hw15842/Documents/PhD_work/Chapter4_L1000_MR_triplicates_analyses/L1000_protein_pair_trait_MR/Data/rsq_dat.rdata")
+## When creating the rsq_dat file, some of the outcome proteins were in the dataset twice because of there being two seperate pQTLs for them
+## We don't need the pQTLs, it just means some have been run twice, so we can now just keep the unique rows
+rsq_dat <- unique(rsq_dat)
+
+# create data frame with jsut the steiger info 
+rsq_dat_steiger_info <- subset(rsq_dat, select=c(id.exposure, id.outcome, SNP, rsq.exposure, rsq.outcome, steiger_dir, steiger_pval, beta.exposure, beta.outcome, se.exposure, se.outcome))
+
+# load in the protein linker file for the prot-a protein names 
+load("/Users/hw15842/Documents/PhD_work/protein_interactions/Data/protein_linker_file.rdata")
+
+# Add the protein names to the rsq steiger nmp data frame
+
+rsq_dat_steiger_info <- merge(rsq_dat_steiger_info, protein_linker_file, by.x="id.exposure", by.y="protein_number")
+names(rsq_dat_steiger_info)[12:13] <- c("Exposure_protein_ID","Exposure_protein_name")
+
+rsq_dat_steiger_info <- merge(rsq_dat_steiger_info, protein_linker_file, by.x="id.outcome", by.y="protein_number")
+names(rsq_dat_steiger_info)[14:15] <- c("Outcome_protein_ID","Outcome_protein_name")
+
+rsq_dat_steiger_info <- rsq_dat_steiger_info[c(2,1,3:15)]  ## put the exposure column first 
+
+
+# load in the mass pleiotropy pQTL file 
+mass_pleio_snps <- read.table("/Users/hw15842/Documents/PhD_work/protein_interactions/new_results/mass_pleio_snps.txt")
+
+# load in the protien positions - going to look at the cis vs trans prot pairs as well
+
+load("/Users/hw15842/Documents/PhD_work/protein_interactions/Data/Outcome_protein_positions_SandF.rdata")
+
+prot_chromosomes <- Outcome_protein_positions_SandF[c("protein_name", "CHR_protein_levels")]
+prot_chromosomes <- unique(prot_chromosomes)
+
+# We now have the rsq data 
+# the mass pleio pQTLs
+# the protein positions
+# and the L1000 data with the pvalue and fdrs added (this still contains protein pairs that may be due to mass pleio pQTLs at the moment, will remove when we merge with rsq data next)
+
+# add whether mass pleio SNP to the rsq_data
+
+rsq_dat_steiger_info$mp_snp <- ifelse(rsq_dat_steiger_info$SNP %in% mass_pleio_snps$V1, "yes", "no")
+
+## add the chr of each protein to the rsq and L1000 datasets
+
+L1000_prot_pair_averages <- merge(L1000_prot_pair_averages, prot_chromosomes, by.x = "prot_1", by.y = "protein_name", all.x = T)
+colnames(L1000_prot_pair_averages)[13] <- c("prot_1.CHR")
+
+L1000_prot_pair_averages <- merge(L1000_prot_pair_averages, prot_chromosomes, by.x = "prot_2", by.y = "protein_name", all.x = T)
+colnames(L1000_prot_pair_averages)[14] <- c("prot_2.CHR")
+
+L1000_prot_pair_averages$cis_pair <- ifelse(L1000_prot_pair_averages$prot_1.CHR == L1000_prot_pair_averages$prot_2.CHR, "yes", "no")
+
+
+rsq_dat_steiger_info <- merge(rsq_dat_steiger_info, prot_chromosomes, by.x = "Exposure_protein_name", by.y = "protein_name", all.x = T)
+colnames(rsq_dat_steiger_info)[17] <- c("Exposure_protein.CHR")
+
+rsq_dat_steiger_info <- merge(rsq_dat_steiger_info, prot_chromosomes, by.x = "Outcome_protein_name", by.y = "protein_name", all.x = T)
+colnames(rsq_dat_steiger_info)[18] <- c("Outcome_protein.CHR")
+
+rsq_dat_steiger_info$cis_pair <- ifelse(rsq_dat_steiger_info$Exposure_protein.CHR == rsq_dat_steiger_info$Outcome_protein.CHR, "yes", "no")
+
+
+```
+
+## 1) Can the MR results predict the same protein pairs as the L1000 data 
+
+We want to determine if a significant MR result can determine if the protein pair is significant in the L1000 data
+
+Take every uniquie pair that has a significant MR result in at least one orientation (if sig in both orientations only count it once)
+What is the probability that that prot pair is in L1000
+What is the probability that that prot pair has a sig FDR corrected pval
+
+(Not using the Rsq data at this point, just the prot pairs that come from a non-mass pleio, pQTL)
+
+```{r}
+load("/Users/hw15842/Documents/PhD_work/Chapter4_L1000_MR_triplicates_analyses/L1000_protein_pair_trait_MR/Data/all_real_prot_on_prot_data.rdata")
+
+# keep just the unique pairs 
+unique_prot_pairs <- all_prot_data_prot_on_prot_names[!duplicated(data.frame(t(apply(all_prot_data_prot_on_prot_names,1,sort)))),]
+
+in_L1000 <- subset(L1000_prot_pair_averages, L1000_prot_pair_averages$prot_1 %in% unique_prot_pairs$X1 & L1000_prot_pair_averages$prot_2 %in% unique_prot_pairs$X2 | L1000_prot_pair_averages$prot_1 %in% unique_prot_pairs$X2 & L1000_prot_pair_averages$prot_2 %in% unique_prot_pairs$X1)
+
+nrow(L1000_prot_pair_averages) == nrow(in_L1000)
+
+# So all the sig prot pairs are in the L1000 dataset (makes sense as this is the dataset we used to extract the data)
+
+prop.table(table(L1000_prot_pair_averages$fdr<0.05))*100
+
+cis <- subset(L1000_prot_pair_averages, L1000_prot_pair_averages$cis_pair =="yes")
+prop.table(table(cis$fdr<0.05))*100
+
+not_cis <- subset(L1000_prot_pair_averages, L1000_prot_pair_averages$cis_pair =="no")
+prop.table(table(not_cis$fdr<0.05))*100
+
+
+```
+
+
+
+The protein pairs we extracted from L1000 were the ones that had a significant MR (we have not split based on mass_pleio yet)
+
+They do not replicate as only 2.63% of them have a significant FDR 
+
+When looking at them split based on whether the protein pairs are cis or not, cis = 2.44, not cis = 2.69, so still not showing replication
+
+We can't split based on mass pleiotropy yet because we dont have the SNPs for the L1000 data, but we will split based on mass pleio for the subsequent analyses
+
+
+
+
+## 2) Can the MR results predict the same protein orientation as the L1000 data 
+
+We will assess this in two ways 
+
+* Does a smaller steiger pvalue correlate with a smaller FDR value 
+* Does the R^2^ orientation match the L1000 orientation (for the L1000 data that has data about both protein orientations)
+
+
+
+#### Does a smaller steiger pvalue correlate with a smaller FDR value 
+
+```{r}
+
+## Convert the rsq data to be the "correct" direction based in the steiger_dir column
+
+rsq_dat_steiger_info$prot_1 <- ifelse(rsq_dat_steiger_info$steiger_dir == "TRUE", paste0(rsq_dat_steiger_info$Exposure_protein_name), paste0(rsq_dat_steiger_info$Outcome_protein_name))
+rsq_dat_steiger_info$prot_2 <- ifelse(rsq_dat_steiger_info$steiger_dir == "TRUE", paste0(rsq_dat_steiger_info$Outcome_protein_name), paste0(rsq_dat_steiger_info$Exposure_protein_name))
+
+## Also add in the beta values for the new orientation as well
+
+rsq_dat_steiger_info$prot_1_beta <- ifelse(rsq_dat_steiger_info$steiger_dir == "TRUE", paste0(rsq_dat_steiger_info$beta.exposure), paste0(rsq_dat_steiger_info$beta.outcome))
+rsq_dat_steiger_info$prot_2_beta <- ifelse(rsq_dat_steiger_info$steiger_dir == "TRUE", paste0(rsq_dat_steiger_info$beta.outcome), paste0(rsq_dat_steiger_info$beta.exposure))
+
+# Make the L1000 prot columns into charactor vectors
+
+L1000_prot_pair_averages$prot_1 <- as.character(L1000_prot_pair_averages$prot_1)
+L1000_prot_pair_averages$prot_2 <- as.character(L1000_prot_pair_averages$prot_2)
+
+# Combine the two data frames - there are no mass pleio prot pairs in the rsq data so this next step wont have them in either 
+
+rsq_dat_steiger_info$prot1_on_prot2 <- paste0(rsq_dat_steiger_info$prot_1, "_on_", rsq_dat_steiger_info$prot_2)
+L1000_prot_pair_averages$prot1_on_prot2 <- paste0(L1000_prot_pair_averages$prot_1, "_on_", L1000_prot_pair_averages$prot_2)
+
+rsq_and_L1000_dat <- merge(L1000_prot_pair_averages, rsq_dat_steiger_info, by="prot1_on_prot2")
+
+
+## Re-calculate a new FDR corrected pvalue for this data as we have lost some prot pairs
+
+rsq_and_L1000_dat$fdr_all <- p.adjust(rsq_and_L1000_dat$pval_max_z, "fdr")
+
+# add in a row.names column so can add the p and nmp data back in 
+
+rsq_and_L1000_dat$rownames <- row.names(rsq_and_L1000_dat)
+
+## calculate a fdr value for just the mass pleio and just the non-mass pleio as well
+
+rsq_and_L1000_dat_mp <- subset(rsq_and_L1000_dat, rsq_and_L1000_dat$mp_snp == "yes")
+rsq_and_L1000_dat_nmp <- subset(rsq_and_L1000_dat, rsq_and_L1000_dat$mp_snp == "no")
+
+rsq_and_L1000_dat_mp$fdr_mp <- p.adjust(rsq_and_L1000_dat_mp$pval_max_z, "fdr")
+rsq_and_L1000_dat_nmp$fdr_nmp <- p.adjust(rsq_and_L1000_dat_nmp$pval_max_z, "fdr")
+
+
+## add the mp and nmp fdrs to the main table
+
+mp <- subset(rsq_and_L1000_dat_mp, select=c(rownames, fdr_mp))
+rsq_and_L1000_dat <- merge(rsq_and_L1000_dat, mp, by="rownames", all.x = T)
+
+nmp <- subset(rsq_and_L1000_dat_nmp, select=c(rownames, fdr_nmp))
+rsq_and_L1000_dat <- merge(rsq_and_L1000_dat, mp, by="rownames", all.x = T)
+
+
+# split into sig and non-sig steiger pvals and see if sig difference in the new fdr values between the two groups 
+sig_steiger_pval <- subset(rsq_and_L1000_dat, rsq_and_L1000_dat$steiger_pval < 0.05)
+non_sig_steiger_pval <- subset(rsq_and_L1000_dat, rsq_and_L1000_dat$steiger_pval > 0.05)
+
+sig_steiger_pval_mp <- subset(rsq_and_L1000_dat_mp, rsq_and_L1000_dat_mp$steiger_pval < 0.05)
+non_sig_steiger_pval_mp <- subset(rsq_and_L1000_dat_mp, rsq_and_L1000_dat_mp$steiger_pval > 0.05)
+
+sig_steiger_pval_nmp <- subset(rsq_and_L1000_dat_nmp, rsq_and_L1000_dat_nmp$steiger_pval < 0.05)
+non_sig_steiger_pval_nmp <- subset(rsq_and_L1000_dat_nmp, rsq_and_L1000_dat_nmp$steiger_pval > 0.05)
+
+# do for -log10 fdr to make more comprable
+
+# all
+t.test(-log10(sig_steiger_pval$fdr_all), -log10(non_sig_steiger_pval$fdr_all))
+
+# mp
+t.test(-log10(sig_steiger_pval_mp$fdr_mp), -log10(non_sig_steiger_pval_mp$fdr_mp))
+
+# nmp
+
+t.test(-log10(sig_steiger_pval_nmp$fdr_nmp), -log10(non_sig_steiger_pval_nmp$fdr_nmp))
+
+```
+
+
+No significant difference for any of the datasets(all,mp,nmp)
+
+
+
+
+#### Does the R^2^ orientation match the L1000 orientation
+
+For the L1000 data that has data for protein 1 on protein 2 and for the reverse orientation, which orientation has the smallest fdr value and does the R-squared data predict the same direction?
+
+To assess this we will perform a binomial test 
+
+
+* Number of trials = number of L1000 protein pairs that have a fwd and rev
+* Probability of success = 0.5 (i.e. 50%)
+* Number of times correct = number of times that the steiger direction same as the L1000 direction
+
+
+```{r}
+# Remove the duplicated p1 on p2 rows 
+# we have some protein names that are the same for different protein numbers 
+p1_same_p2 <- subset(rsq_dat_steiger_info, rsq_dat_steiger_info$prot_1 == rsq_dat_steiger_info$prot_2)
+nrow(p1_same_p2)
+library(ieugwasr)
+p1_same_p2_gwasinfo_exp <- gwasinfo(p1_same_p2$id.exposure)
+p1_same_p2_gwasinfo_out <- gwasinfo(p1_same_p2$id.outcome)
+p1_same_p2_gwasinfo_both <- cbind(p1_same_p2_gwasinfo_exp[,1:2], p1_same_p2_gwasinfo_out[,1:2])
+names(p1_same_p2_gwasinfo_both) <- c("id.exp", "trait.exp", "id.out", "trait.out")
+p1_same_p2_gwasinfo_both$same_trait_name <- ifelse(p1_same_p2_gwasinfo_both$trait.exp == p1_same_p2_gwasinfo_both$trait.out, "YES", "NO")
+table(p1_same_p2_gwasinfo_both$same_trait_name)
+# So majority of them have the same actual trait name even though they are slightly different GWAS and the ones that vary are only very slightly different 
+# "Coagulation Factor X" vs "Coagulation factor Xa"
+# "Vascular endothelial growth factor A, isoform 121" vs "Vascular endothelial growth factor A"
+# "Ck-beta-8-1" vs "C-C motif chemokine 23" - this one is more different  but looking at gene cards https://www.genecards.org/cgi-bin/carddisp.pl?gene=CCL23 they are aliases 
+
+
+# remove the one with the 
+
+
+# create two datasets - one with the correct (forward) orientaion (based on the rsq values) and one with the reverse orientation 
+
+fwd_rsq_df <- rsq_dat_steiger_info[!duplicated(rsq_dat_steiger_info[,c("prot1_on_prot2")]),]
+
+rev_rsq_df <- fwd_rsq_df
+rev_rsq_df$prot2_on_prot1 <- paste0(rev_rsq_df$prot_2, "_on_", rev_rsq_df$prot_1)
+rev_rsq_df$prot1_on_prot2 <- NULL
+
+fwd_rsq_df$alphabet_direction <- ifelse( fwd_rsq_df$prot_1 < fwd_rsq_df$prot_2, paste0(fwd_rsq_df$prot_1 ,"_on_", fwd_rsq_df$prot_2), paste0(fwd_rsq_df$prot_2 ,"_on_", fwd_rsq_df$prot_1))
+
+rev_rsq_df$alphabet_direction <- ifelse( rev_rsq_df$prot_1 < rev_rsq_df$prot_2, paste0(rev_rsq_df$prot_1 ,"_on_", rev_rsq_df$prot_2), paste0(rev_rsq_df$prot_2 ,"_on_", rev_rsq_df$prot_1))
+
+
+# Add in the L1000 data based on the fwd and rev orientations 
+
+fwd_rsq_df <- merge(fwd_rsq_df, L1000_prot_pair_averages, by="prot1_on_prot2")
+rev_rsq_df <- merge(rev_rsq_df, L1000_prot_pair_averages, by.x="prot2_on_prot1", by.y = "prot1_on_prot2")
+
+# Just keep the columns we need 
+fwd_rsq_df <- subset(fwd_rsq_df, select=c(alphabet_direction, prot1_on_prot2, steiger_pval, pval_max_z, fdr, mp_snp))
+rev_rsq_df <- subset(rev_rsq_df, select=c(alphabet_direction, prot2_on_prot1, steiger_pval, pval_max_z, fdr, mp_snp))
+
+colnames(fwd_rsq_df)[2:6] <- paste("FWD", colnames(fwd_rsq_df)[2:6], sep = "_")
+colnames(rev_rsq_df)[2:6] <- paste("REV", colnames(rev_rsq_df)[2:6], sep = "_")
+
+
+both_fwd_rev <- merge(fwd_rsq_df, rev_rsq_df, by="alphabet_direction")
+
+table(both_fwd_rev$FWD_mp_snp == both_fwd_rev$REV_mp_snp)
+
+# not all the mass pleio snps match
+
+# x <- fwd_rsq_df[duplicated(fwd_rsq_df$alphabet_direction),]
+# x2 <- fwd_rsq_df[fwd_rsq_df$alphabet_direction %in% x$alphabet_direction,]
+# x2 <- x2 %>% group_by(alphabet_direction)
+# x2 <- group_split(x2)
+
+# Remove the ones that where the prot1_on_prot2 is the same as prot2_on_prot1
+# it is to do with there being a snp for both proteins, and both directions being significant, and both having a true steiger value
+# when we merge based on alphabet it keeps all of them, so we end up with the same prot orientation being compared for some of them so can jsut reomve those ones 
+
+both_fwd_rev <- subset(both_fwd_rev, !both_fwd_rev$FWD_prot1_on_prot2 == both_fwd_rev$REV_prot2_on_prot1)
+
+# now when we get that all the mp_snps columns match so it has worked 
+table(both_fwd_rev$FWD_mp_snp == both_fwd_rev$REV_mp_snp)
+
+# split based on mp
+both_fwd_rev_mp <- subset(both_fwd_rev, both_fwd_rev$FWD_mp_snp == "yes")
+both_fwd_rev_nmp <- subset(both_fwd_rev, both_fwd_rev$FWD_mp_snp == "no")
+
+# add fdr direction for all
+both_fwd_rev$fdr_direction <- ifelse(both_fwd_rev$FWD_fdr  < both_fwd_rev$REV_fdr, "FWD", "REV")
+
+# calculate new fdr for mp and nmp
+
+both_fwd_rev_mp$FWD_fdr_mp <- p.adjust(both_fwd_rev_mp$FWD_pval_max_z, "fdr")
+both_fwd_rev_mp$REV_fdr_mp <- p.adjust(both_fwd_rev_mp$REV_pval_max_z, "fdr")
+both_fwd_rev_mp$fdr_direction <- ifelse(both_fwd_rev_mp$FWD_fdr_mp  < both_fwd_rev_mp$REV_fdr_mp, "FWD", "REV")
+
+
+both_fwd_rev_nmp$FWD_fdr_nmp <- p.adjust(both_fwd_rev_nmp$FWD_pval_max_z, "fdr")
+both_fwd_rev_nmp$REV_fdr_nmp <- p.adjust(both_fwd_rev_nmp$REV_pval_max_z, "fdr")
+both_fwd_rev_nmp$fdr_direction <- ifelse(both_fwd_rev_nmp$FWD_fdr_nmp  < both_fwd_rev_nmp$REV_fdr_nmp, "FWD", "REV")
+
+
+
+## now to run the binomial test
+
+binom.test(x=length(grep("FWD", both_fwd_rev$fdr_direction)), n=nrow(both_fwd_rev), p=0.5)
+binom.test(x=length(grep("FWD", both_fwd_rev_mp$fdr_direction)), n=nrow(both_fwd_rev_mp), p=0.5)
+binom.test(x=length(grep("FWD", both_fwd_rev_nmp$fdr_direction)), n=nrow(both_fwd_rev_nmp), p=0.5)
+
+```
+
+
+
+Binomial results
+
+All data:
+We are likely to get the steiger and the fdr predicting the same orientation 45% of the time and this is significantly different to 50%
+
+MP data:
+We are likely to get the stieger and fdr predicting the same orientation 63% of the time and that is significantly different from 50%
+
+NMP data:
+We are likely to get the stieger and fdr predicting the same orientation 44% of the time and that is NOT significantly different from 50%
+
+
+(The non mass pleio results are different from the bionmial test done in "L1000_analysis_using_prot_pair_averages" - think this is due to removing the rows where the prot orientations were the same)
+
+
+This mass pleio being sig and non-mass not being sig is similar to what we see in the expression data (the t-tests show differences in the mp data but not the nmp data)
+
+
+
+
+## 3) Can the MR results predict the same direction of effect as the L1000 data 
+
+We have the *beta* values for the MR of the protein pairs - this tells us whether protein 1 up regulates or down regulates protein 2
+
+The Z-scores have a sign which tell us whether protein 1 up reulgates (+) or down regulates (-) protein 2 
+
+(we have already accounted for the two different pertubagen types by multiplying the shRNA z-scores by -1)
+
+Does the direction of the *beta* correlate with the direction of the Z-score 
+
+Does the magnitude of the *beta* correlate with the magnitude of the Z-score 
+
+```{r}
+## Calculate the beta of prot 1 on prot 2 
+
+rsq_and_L1000_dat$p1_p2_beta <- as.numeric(rsq_and_L1000_dat$prot_2_beta) / as.numeric(rsq_and_L1000_dat$prot_1_beta)
+
+# plot the beta against the z scores to look at the patterns
+plot(rsq_and_L1000_dat$p1_p2_beta, rsq_and_L1000_dat$largest)
+
+
+rsq_and_L1000_dat$beta_z_sign_same <- ifelse(sign(rsq_and_L1000_dat$p1_p2_beta) == sign(rsq_and_L1000_dat$largest), "YES", "NO")
+
+prop.table(table(rsq_and_L1000_dat$beta_z_sign_same))*100
+
+
+rsq_and_L1000_dat_mp <- subset(rsq_and_L1000_dat, rsq_and_L1000_dat$mp_snp == "yes")
+rsq_and_L1000_dat_nmp <- subset(rsq_and_L1000_dat, rsq_and_L1000_dat$mp_snp == "no")
+
+plot(rsq_and_L1000_dat_mp$p1_p2_beta, rsq_and_L1000_dat_mp$largest)
+prop.table(table(rsq_and_L1000_dat_mp$beta_z_sign_same))*100
+
+
+plot(rsq_and_L1000_dat_nmp$p1_p2_beta, rsq_and_L1000_dat_nmp$largest)
+prop.table(table(rsq_and_L1000_dat_nmp$beta_z_sign_same))*100
+
+```
+
+
+Around 50% for the directions of the beta and z-score being the same direction so cant predict protein direction of effect. 
+
+
+
+
+# Conclusions
+
+1. Can the MR results predict the same protein pairs as the L1000 data 
+
+Of all the protein pairs extracted from L1000 (which were the sig prot pairs in our dataset, fwd and rev orientation) only 2.62% of them had a significant fdr value
+Suggests that they are not replicating when looking at the data as a whole.
+
+we also looked to see if just selecting the protein pairs that are in cis with one another (on the same chromosome) replicated better. Of the cis protein pairs only 2.44% of them had a sig fdr (non cis 2.69%) so splitting based on cis vs non-cis does not appear to make a difference
+
+For the rest of the analyses we focus on looking at the difference betwenn mass pleiotropy and non-mass pleiotropy differences
+
+
+
+
+2. Can the MR results predict the same protein orientation as the L1000 data
+
+* Does a smaller steiger pvalue correlate with a smaller FDR value 
+
+T-tests to look at if there is a significant difference between between the -log10(fdr) values in the significant vs non-significant steiger pvalue groups
+
+Looked at all, mp and nmp data - none of them had a significant difference between the two groups 
+
+
+* Does the R^2^ orientation match the L1000 orientation (for the L1000 data that has data about both protein orientations)
+
+Binomial test to see if the number of times that L1000 and rsq_dat predict the same protein orientation is significantly different to 50% 
+
+All data:
+We are likely to get the steiger and the fdr predicting the same orientation 45% of the time and this is significantly different to 50%
+
+MP data:
+We are likely to get the stieger and fdr predicting the same orientation 63% of the time and that is significantly different from 50%
+
+NMP data:
+We are likely to get the stieger and fdr predicting the same orientation 44% of the time and that is NOT significantly different from 50%
+
+
+
+
+3. Can the MR results predict the same direction of effect as the L1000 data 
+
+Looked to see how often the beta and z-score had the same sign
+
+All data:
+48.78% of time sign the same
+
+MP data:
+48.81% of time sign the same
+
+NMP data: 46.12% of time sign the same
+
+
+/
+
+//
+
+///
+
+////
+
+/////
+
+/////
+
+
+We also interogated whehter petrubagen or cell type or experiment made a difference
+
+NOt sure quite where to put this in the paper/chapter --> might work better in context of GTEx results..??
+
+
+
+
+
+
+
+
+
+
