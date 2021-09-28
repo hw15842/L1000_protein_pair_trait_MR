@@ -30,8 +30,8 @@ Then calculate the steiger info for the rsq_dat
 
 ```{r}
 # Load in the L1000 results
-githubURL <- "https://github.com/hw15842/L1000_protein_pair_trait_MR/blob/master/Data/L1000_prot_pair_averages.rdata?raw=true"
-load(url(githubURL))
+githubURL1 <- "https://github.com/hw15842/L1000_protein_pair_trait_MR/blob/master/Data/L1000_prot_pair_averages.rdata?raw=true"
+load(url(githubURL1))
 
 # determine absolute largest z-score, create a pval and fdr corrected pval for it
 L1000_prot_pair_averages$largest <- ifelse(abs(L1000_prot_pair_averages$min) > abs(L1000_prot_pair_averages$max), L1000_prot_pair_averages$min, L1000_prot_pair_averages$max)
@@ -39,7 +39,10 @@ L1000_prot_pair_averages$pval_max_z <- (pnorm(abs(L1000_prot_pair_averages$large
 L1000_prot_pair_averages$fdr <- p.adjust(L1000_prot_pair_averages$pval_max_z, "fdr")
 
 # load in the rsq_dat
-load("/Users/hw15842/Documents/PhD_work/Chapter4_L1000_MR_triplicates_analyses/L1000_protein_pair_trait_MR/Data/rsq_dat.rdata")
+# load("/Users/hw15842/Documents/PhD_work/Chapter4_L1000_MR_triplicates_analyses/L1000_protein_pair_trait_MR/Data/rsq_dat.rdata")
+githubURL2 <- "https://github.com/hw15842/L1000_protein_pair_trait_MR/blob/master/Data/rsq_dat.rdata?raw=true"
+load(url(githubURL2))
+
 ## When creating the rsq_dat file, some of the outcome proteins were in the dataset twice because of there being two seperate pQTLs for them
 ## We don't need the pQTLs, it just means some have been run twice, so we can now just keep the unique rows
 rsq_dat <- unique(rsq_dat)
@@ -48,7 +51,9 @@ rsq_dat <- unique(rsq_dat)
 rsq_dat_steiger_info <- subset(rsq_dat, select=c(id.exposure, id.outcome, SNP, rsq.exposure, rsq.outcome, steiger_dir, steiger_pval, beta.exposure, beta.outcome, se.exposure, se.outcome))
 
 # load in the protein linker file for the prot-a protein names 
-load("/Users/hw15842/Documents/PhD_work/protein_interactions/Data/protein_linker_file.rdata")
+# load("/Users/hw15842/Documents/PhD_work/protein_interactions/Data/protein_linker_file.rdata")
+githubURL3 <- "https://github.com/hw15842/L1000_protein_pair_trait_MR/blob/master/Data/protein_linker_file.rdata?raw=true"
+load(url(githubURL3))
 
 # Add the protein names to the rsq steiger nmp data frame
 
@@ -66,7 +71,10 @@ mass_pleio_snps <- read.table("/Users/hw15842/Documents/PhD_work/protein_interac
 
 # load in the protien positions - going to look at the cis vs trans prot pairs as well
 
-load("/Users/hw15842/Documents/PhD_work/protein_interactions/Data/Outcome_protein_positions_SandF.rdata")
+# load("/Users/hw15842/Documents/PhD_work/protein_interactions/Data/Outcome_protein_positions_SandF.rdata")
+githubURL4 <- "https://github.com/hw15842/L1000_protein_pair_trait_MR/blob/master/Data/Outcome_protein_positions_SandF.rdata?raw=true"
+load(url(githubURL4))
+
 
 prot_chromosomes <- Outcome_protein_positions_SandF[c("protein_name", "CHR_protein_levels")]
 prot_chromosomes <- unique(prot_chromosomes)
@@ -113,7 +121,11 @@ What is the probability that that prot pair has a sig FDR corrected pval
 (Not using the Rsq data at this point, just the prot pairs that come from a non-mass pleio, pQTL)
 
 ```{r}
-load("/Users/hw15842/Documents/PhD_work/Chapter4_L1000_MR_triplicates_analyses/L1000_protein_pair_trait_MR/Data/all_real_prot_on_prot_data.rdata")
+# load("/Users/hw15842/Documents/PhD_work/Chapter4_L1000_MR_triplicates_analyses/L1000_protein_pair_trait_MR/Data/all_real_prot_on_prot_data.rdata")
+
+githubURL5 <- "https://github.com/hw15842/L1000_protein_pair_trait_MR/blob/master/Data/all_real_prot_on_prot_data.rdata?raw=true"
+load(url(githubURL5))
+
 
 # keep just the unique pairs 
 unique_prot_pairs <- all_prot_data_prot_on_prot_names[!duplicated(data.frame(t(apply(all_prot_data_prot_on_prot_names,1,sort)))),]
